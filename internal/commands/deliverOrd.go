@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 )
@@ -42,6 +43,9 @@ func (cur deliverOrd) Execute(st storage.Storage) error {
 	for _, elem := range ords {
 		if elem.Status != "alive" {
 			return errors.New("some orders are not available")
+		}
+		if elem.Limit.Before(time.Now()) {
+			return errors.New("some orders is out of storage limit date")
 		}
 		tempErr := st.ChangeStatus(elem.Id, "delivered")
 		if tempErr != nil {
