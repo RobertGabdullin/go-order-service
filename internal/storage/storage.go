@@ -1,0 +1,241 @@
+package storage
+
+import (
+	"encoding/json"
+	"errors"
+	"os"
+	"time"
+
+	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
+)
+
+type Storage interface {
+	AddOrder(Order) error
+	ChangeStatus(int, string) error
+	FindOrders([]int) ([]Order, error)
+	ListOrders(int) ([]Order, error)
+	GetReturns() ([]Order, error)
+	UpdateHash() error
+}
+
+type JSONStorage struct {
+	fileName string
+}
+
+func NewStorage(fileName string) JSONStorage {
+	return JSONStorage{fileName: fileName}
+}
+
+func (s JSONStorage) AddOrder(ord Order) error {
+	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
+
+		if errCreateFile := s.createFile(); errCreateFile != nil {
+			return errCreateFile
+		}
+	}
+
+	b, err := os.ReadFile(s.fileName)
+	if err != nil {
+		return err
+	}
+
+	var records OrdersDTO
+	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
+		return errUnmarshal
+	}
+
+	for _, elem := range records.Orders {
+		if elem.Id == ord.Id {
+			return errors.New("order with such id already exists")
+		}
+	}
+
+	records.Orders = append(records.Orders, ord)
+
+	bWrite, errMarshal := json.MarshalIndent(records, "  ", "  ")
+	if errMarshal != nil {
+		return errMarshal
+	}
+
+	return os.WriteFile(s.fileName, bWrite, 0666)
+
+}
+
+func (s JSONStorage) ChangeStatus(id int, status string) error {
+	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
+
+		if errCreateFile := s.createFile(); errCreateFile != nil {
+			return errCreateFile
+		}
+	}
+
+	b, err := os.ReadFile(s.fileName)
+	if err != nil {
+		return err
+	}
+
+	var records OrdersDTO
+	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
+		return errUnmarshal
+	}
+
+	ok := false
+
+	for i, elem := range records.Orders {
+		if elem.Id == id {
+			records.Orders[i].Status = status
+			if status == "delivered" {
+				records.Orders[i].DeliviredAt = time.Now()
+			}
+			ok = true
+		}
+	}
+
+	if !ok {
+		return errors.New("order with such id does not exist")
+	}
+
+	bWrite, errMarshal := json.MarshalIndent(records, "  ", "  ")
+	if errMarshal != nil {
+		return errMarshal
+	}
+
+	return os.WriteFile(s.fileName, bWrite, 0666)
+
+}
+
+func exists(cur int, list []int) bool {
+	for _, elem := range list {
+		if elem == cur {
+			return true
+		}
+	}
+	return false
+}
+
+func (s JSONStorage) FindOrders(ids []int) ([]Order, error) {
+
+	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
+
+		if errCreateFile := s.createFile(); errCreateFile != nil {
+			return nil, errCreateFile
+		}
+	}
+
+	b, err := os.ReadFile(s.fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	var records OrdersDTO
+	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
+		return nil, errUnmarshal
+	}
+
+	ans := make([]Order, 0)
+
+	for _, elem := range records.Orders {
+		if exists(elem.Id, ids) {
+			ans = append(ans, elem)
+		}
+	}
+
+	return ans, nil
+
+}
+
+func (s JSONStorage) ListOrders(recipient int) ([]Order, error) {
+	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
+
+		if errCreateFile := s.createFile(); errCreateFile != nil {
+			return nil, errCreateFile
+		}
+	}
+
+	b, err := os.ReadFile(s.fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	var records OrdersDTO
+	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
+		return nil, errUnmarshal
+	}
+
+	ans := make([]Order, 0)
+
+	for _, elem := range records.Orders {
+		if elem.Recipient == recipient {
+			ans = append(ans, elem)
+		}
+	}
+
+	return ans, nil
+}
+
+func (s JSONStorage) GetReturns() ([]Order, error) {
+	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
+
+		if errCreateFile := s.createFile(); errCreateFile != nil {
+			return nil, errCreateFile
+		}
+	}
+
+	b, err := os.ReadFile(s.fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	var records OrdersDTO
+	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
+		return nil, errUnmarshal
+	}
+
+	ans := make([]Order, 0)
+
+	for _, elem := range records.Orders {
+		if elem.Status == "returned" {
+			ans = append(ans, elem)
+		}
+	}
+
+	return ans, nil
+}
+
+func (s JSONStorage) UpdateHash() error {
+	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
+
+		if errCreateFile := s.createFile(); errCreateFile != nil {
+			return errCreateFile
+		}
+	}
+
+	b, err := os.ReadFile(s.fileName)
+	if err != nil {
+		return err
+	}
+
+	var records OrdersDTO
+	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
+		return errUnmarshal
+	}
+
+	records.CurHash = hash.GenerateHash()
+
+	bWrite, errMarshal := json.MarshalIndent(records, "  ", "  ")
+	if errMarshal != nil {
+		return errMarshal
+	}
+
+	return os.WriteFile(s.fileName, bWrite, 0666)
+}
+
+func (s JSONStorage) createFile() error {
+	f, err := os.Create(s.fileName)
+	os.WriteFile(s.fileName, []byte("{}"), 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return nil
+}
