@@ -9,23 +9,23 @@ import (
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 )
 
-type deliverOrd struct {
+type deliverOrder struct {
 	ords []int
 }
 
-func NewDeliverOrd() deliverOrd {
-	return deliverOrd{}
+func NewDeliverOrd() deliverOrder {
+	return deliverOrder{}
 }
 
-func SetDeliverOrd(ords []int) deliverOrd {
-	return deliverOrd{ords}
+func SetDeliverOrd(ords []int) deliverOrder {
+	return deliverOrder{ords}
 }
 
-func (cur deliverOrd) GetName() string {
+func (cur deliverOrder) GetName() string {
 	return "deliverOrd"
 }
 
-func (cur deliverOrd) Execute(st storage.Storage) error {
+func (cur deliverOrder) Execute(st storage.Storage) error {
 	ords, err := st.FindOrders(cur.ords)
 
 	if err != nil {
@@ -56,7 +56,7 @@ func (cur deliverOrd) Execute(st storage.Storage) error {
 	return nil
 }
 
-func (deliverOrd) Description() string {
+func (deliverOrder) Description() string {
 	return `Выдать заказ клиенту. На вход принимается список ID заказов. 
 	     Можно выдавать только те заказы, которые были приняты от курьера и чей срок хранения меньше текущей даты.
 	     Все ID заказов должны принадлежать только одному клиенту.
@@ -86,7 +86,7 @@ func convertToInt(in string) ([]int, error) {
 
 }
 
-func (deliverOrd) Validate(m map[string]string) (Command, error) {
+func (deliverOrder) Validate(m map[string]string) (Command, error) {
 	if len(m) != 1 {
 		return NewDeliverOrd(), errors.New("invalid number of arguments")
 	}

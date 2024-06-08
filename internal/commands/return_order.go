@@ -8,29 +8,29 @@ import (
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 )
 
-type returnOrd struct {
+type returnOrders struct {
 	order int
 }
 
-func NewReturnOrd() returnOrd {
-	return returnOrd{}
+func NewReturnOrd() returnOrders {
+	return returnOrders{}
 }
 
-func SetReturnOrd(order int) returnOrd {
-	return returnOrd{order}
+func SetReturnOrd(order int) returnOrders {
+	return returnOrders{order}
 }
 
-func (cur returnOrd) GetName() string {
+func (cur returnOrders) GetName() string {
 	return "returnOrd"
 }
 
-func (returnOrd) Description() string {
+func (returnOrders) Description() string {
 	return `Вернуть заказ курьеру. На вход принимается ID заказа. Метод должен удалять заказ из вашего файла.
 	     Можно вернуть только те заказы, у которых вышел срок хранения и если заказы не были выданы клиенту.
 	     Использование: returnOrd --ord=1`
 }
 
-func (cur returnOrd) Execute(st storage.Storage) error {
+func (cur returnOrders) Execute(st storage.Storage) error {
 
 	temp := make([]int, 0)
 	temp = append(temp, cur.order)
@@ -56,7 +56,7 @@ func (cur returnOrd) Execute(st storage.Storage) error {
 	return st.ChangeStatus(ords[0].Id, "deleted")
 }
 
-func (returnOrd) Validate(m map[string]string) (Command, error) {
+func (returnOrders) Validate(m map[string]string) (Command, error) {
 	if len(m) != 1 {
 		return NewReturnOrd(), errors.New("invalid number of flags")
 	}

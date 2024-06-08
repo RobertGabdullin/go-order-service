@@ -79,7 +79,7 @@ func (acceptReturn) Validate(m map[string]string) (Command, error) {
 
 func (acceptReturn) Description() string {
 	return `Принять возврат от клиента. 
-	     На вход принимается ID пользователя и ID заказа. 
+	     На вход принимается ID пользователя (user) и ID заказа (ord). 
 	     Заказ может быть возвращен в течение двух дней с момента выдачи.
 	     Использование: acceptReturn --user=1 --ord 1`
 }

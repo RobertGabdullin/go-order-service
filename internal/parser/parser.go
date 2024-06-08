@@ -8,10 +8,21 @@ import (
 )
 
 type Parser interface {
-	Parse(line string) (commands.Command, error)
+	Parse(line string) (string, map[string]string, error)
 }
 
-type MyParser struct {
+type ArgsParser struct {
+}
+
+func GetCommands() []commands.Command {
+	ans := make([]commands.Command, 0)
+	ans = append(ans, commands.NewAcceptOrd())
+	ans = append(ans, commands.NewAcceptReturn())
+	ans = append(ans, commands.NewDeliverOrd())
+	ans = append(ans, commands.NewGetOrds())
+	ans = append(ans, commands.NewGetReturns())
+	ans = append(ans, commands.NewReturnOrd())
+	return ans
 }
 
 // getArgs принимает список аргументов и возвращает словарь, где ключ - это название флага, а значение - это значение данного флага
@@ -60,16 +71,16 @@ func getArgs(args []string) (map[string]string, error) {
 	if ok {
 		return result, nil
 	} else {
-		return nil, errors.New("Invalid flag")
+		return nil, errors.New("invalid flag")
 	}
 }
 
-func (MyParser) Parse(input string) (commands.Command, error) {
+func (ArgsParser) Parse(input string) (string, map[string]string, error) {
 	parts := strings.Fields(input)
 	var cmd string
 	var argList []string
 	if len(parts) == 0 {
-		return commands.AcceptOrd{}, errors.New("Empty line")
+		return "", nil, errors.New("empty line")
 	} else if len(parts) == 1 {
 		cmd, argList = parts[0], make([]string, 0)
 	} else {
@@ -77,26 +88,8 @@ func (MyParser) Parse(input string) (commands.Command, error) {
 	}
 	args, err := getArgs(argList)
 	if err != nil {
-		return commands.NewAcceptOrd(), err
+		return "", nil, err
 	}
-	var ans commands.Command
-	switch cmd {
-	case "acceptOrd":
-		ans = commands.NewAcceptOrd()
-	case "acceptReturn":
-		ans = commands.NewAcceptReturn()
-	case "deliverOrd":
-		ans = commands.NewDeliverOrd()
-	case "getOrds":
-		ans = commands.NewGetOrds()
-	case "getReturns":
-		ans = commands.NewGetReturns()
-	case "returnOrd":
-		ans = commands.NewReturnOrd()
-	case "help":
-		ans = commands.NewHelp()
-	default:
-		return commands.NewAcceptOrd(), errors.New("unknown error")
-	}
-	return ans.Validate(args)
+
+	return cmd, args, nil
 }

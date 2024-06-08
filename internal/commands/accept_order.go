@@ -8,25 +8,25 @@ import (
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 )
 
-type AcceptOrd struct {
+type AcceptOrder struct {
 	recipient int
 	order     int
 	storage   time.Time
 }
 
-func NewAcceptOrd() AcceptOrd {
-	return AcceptOrd{}
+func NewAcceptOrd() AcceptOrder {
+	return AcceptOrder{}
 }
 
-func SetAcceptOrd(rec, ord int, st time.Time) AcceptOrd {
-	return AcceptOrd{rec, ord, st}
+func SetAcceptOrd(rec, ord int, st time.Time) AcceptOrder {
+	return AcceptOrder{rec, ord, st}
 }
 
-func (cur AcceptOrd) GetName() string {
+func (cur AcceptOrder) GetName() string {
 	return "acceptOrd"
 }
 
-func (cur AcceptOrd) Execute(s storage.Storage) error {
+func (cur AcceptOrder) Execute(s storage.Storage) error {
 
 	if cur.storage.Before(time.Now()) {
 		return errors.New("storage time is out")
@@ -36,13 +36,13 @@ func (cur AcceptOrd) Execute(s storage.Storage) error {
 
 }
 
-func (AcceptOrd) Description() string {
+func (AcceptOrder) Description() string {
 	return `Принять заказ от курьера. На вход принимается ID заказа, ID получателя и срок хранения. 
 	     Заказ нельзя принять дважды. Если срок хранения в прошлом, приложение выдаст ошибку.
 	     Использование: acceptOrd --user=1 -ord 1 -st=2024-06-05T10`
 }
 
-func (AcceptOrd) Validate(m map[string]string) (Command, error) {
+func (AcceptOrder) Validate(m map[string]string) (Command, error) {
 	if len(m) != 3 {
 		return NewAcceptOrd(), errors.New("wrong number of arguments")
 	}

@@ -8,30 +8,30 @@ import (
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 )
 
-type getOrds struct {
+type getOrders struct {
 	user  int
 	count int
 }
 
-func NewGetOrds() getOrds {
-	return getOrds{}
+func NewGetOrds() getOrders {
+	return getOrders{}
 }
 
-func (getOrds) Description() string {
+func (getOrders) Description() string {
 	return `Получить список заказов. На вход принимается ID пользователя как обязательный параметр и опциональные параметры.
 	     Параметры позволяют получать только последние N заказов или заказы клиента, находящиеся в нашем ПВЗ
 	     Использование: getOrds --user 1 -count=5`
 }
 
-func SetGetOrds(user, count int) getOrds {
-	return getOrds{user, count}
+func SetGetOrds(user, count int) getOrders {
+	return getOrders{user, count}
 }
 
-func (cur getOrds) GetName() string {
+func (cur getOrders) GetName() string {
 	return "getOrds"
 }
 
-func (cur getOrds) Execute(st storage.Storage) error {
+func (cur getOrders) Execute(st storage.Storage) error {
 	ords, err := st.ListOrders(cur.user)
 
 	if err != nil {
@@ -50,7 +50,7 @@ func (cur getOrds) Execute(st storage.Storage) error {
 	return nil
 }
 
-func (getOrds) Validate(m map[string]string) (Command, error) {
+func (getOrders) Validate(m map[string]string) (Command, error) {
 	if len(m) < 1 || len(m) > 2 {
 		return NewGetOrds(), errors.New("invalid number of flags")
 	}

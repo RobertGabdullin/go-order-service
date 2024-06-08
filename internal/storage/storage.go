@@ -22,26 +22,23 @@ type JSONStorage struct {
 	fileName string
 }
 
-func NewStorage(fileName string) JSONStorage {
-	return JSONStorage{fileName: fileName}
-}
-
-func (s JSONStorage) AddOrder(ord Order) error {
+func New(fileName string) (JSONStorage, error) {
+	s := JSONStorage{fileName}
 	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
 
 		if errCreateFile := s.createFile(); errCreateFile != nil {
-			return errCreateFile
+			return JSONStorage{""}, errCreateFile
 		}
 	}
 
-	b, err := os.ReadFile(s.fileName)
+	return s, nil
+}
+
+func (s JSONStorage) AddOrder(ord Order) error {
+
+	records, err := s.readFile()
 	if err != nil {
 		return err
-	}
-
-	var records OrdersDTO
-	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
-		return errUnmarshal
 	}
 
 	for _, elem := range records.Orders {
@@ -62,21 +59,10 @@ func (s JSONStorage) AddOrder(ord Order) error {
 }
 
 func (s JSONStorage) ChangeStatus(id int, status string) error {
-	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
 
-		if errCreateFile := s.createFile(); errCreateFile != nil {
-			return errCreateFile
-		}
-	}
-
-	b, err := os.ReadFile(s.fileName)
+	records, err := s.readFile()
 	if err != nil {
 		return err
-	}
-
-	var records OrdersDTO
-	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
-		return errUnmarshal
 	}
 
 	ok := false
@@ -86,6 +72,9 @@ func (s JSONStorage) ChangeStatus(id int, status string) error {
 			records.Orders[i].Status = status
 			if status == "delivered" {
 				records.Orders[i].DeliviredAt = time.Now()
+			}
+			if status == "returned" {
+				records.Orders[i].AcceptedAt = time.Now()
 			}
 			ok = true
 		}
@@ -104,9 +93,9 @@ func (s JSONStorage) ChangeStatus(id int, status string) error {
 
 }
 
-func exists(cur int, list []int) bool {
-	for _, elem := range list {
-		if elem == cur {
+func exists(orderID int, orderIDs []int) bool {
+	for _, elem := range orderIDs {
+		if elem == orderID {
 			return true
 		}
 	}
@@ -115,21 +104,9 @@ func exists(cur int, list []int) bool {
 
 func (s JSONStorage) FindOrders(ids []int) ([]Order, error) {
 
-	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
-
-		if errCreateFile := s.createFile(); errCreateFile != nil {
-			return nil, errCreateFile
-		}
-	}
-
-	b, err := os.ReadFile(s.fileName)
+	records, err := s.readFile()
 	if err != nil {
 		return nil, err
-	}
-
-	var records OrdersDTO
-	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
-		return nil, errUnmarshal
 	}
 
 	ans := make([]Order, 0)
@@ -145,21 +122,10 @@ func (s JSONStorage) FindOrders(ids []int) ([]Order, error) {
 }
 
 func (s JSONStorage) ListOrders(recipient int) ([]Order, error) {
-	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
 
-		if errCreateFile := s.createFile(); errCreateFile != nil {
-			return nil, errCreateFile
-		}
-	}
-
-	b, err := os.ReadFile(s.fileName)
+	records, err := s.readFile()
 	if err != nil {
 		return nil, err
-	}
-
-	var records OrdersDTO
-	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
-		return nil, errUnmarshal
 	}
 
 	ans := make([]Order, 0)
@@ -203,12 +169,6 @@ func (s JSONStorage) GetReturns() ([]Order, error) {
 }
 
 func (s JSONStorage) UpdateHash() error {
-	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
-
-		if errCreateFile := s.createFile(); errCreateFile != nil {
-			return errCreateFile
-		}
-	}
 
 	b, err := os.ReadFile(s.fileName)
 	if err != nil {
@@ -238,4 +198,18 @@ func (s JSONStorage) createFile() error {
 	}
 	defer f.Close()
 	return nil
+}
+
+func (s JSONStorage) readFile() (OrdersDTO, error) {
+	b, err := os.ReadFile(s.fileName)
+	if err != nil {
+		return OrdersDTO{nil, ""}, err
+	}
+
+	var records OrdersDTO
+	if errUnmarshal := json.Unmarshal(b, &records); errUnmarshal != nil {
+		return OrdersDTO{nil, ""}, errUnmarshal
+	}
+
+	return records, nil
 }
