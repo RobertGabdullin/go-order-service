@@ -43,9 +43,10 @@ func main() {
 		errRun := cmd.Run(input)
 		if errRun != nil {
 			fmt.Println(errRun)
-		} else {
-			fmt.Println("Success!")
+			continue
 		}
+
+		fmt.Println("Success!")
 
 	}
 }
