@@ -20,7 +20,7 @@ func NewGetOrds() getOrders {
 func (getOrders) Description() string {
 	return `Получить список заказов. На вход принимается ID пользователя как обязательный параметр и опциональные параметры.
 	     Параметры позволяют получать только последние N заказов или заказы клиента, находящиеся в нашем ПВЗ
-	     Использование: getOrds --user 1 -count=5`
+	     Использование: getOrds -user=1 -count=5`
 }
 
 func SetGetOrds(user, count int) getOrders {

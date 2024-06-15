@@ -81,5 +81,5 @@ func (acceptReturn) Description() string {
 	return `Принять возврат от клиента. 
 	     На вход принимается ID пользователя (user) и ID заказа (ord). 
 	     Заказ может быть возвращен в течение двух дней с момента выдачи.
-	     Использование: acceptReturn --user=1 --ord 1`
+	     Использование: acceptReturn -user=1 -ord=1`
 }

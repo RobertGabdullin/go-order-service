@@ -27,7 +27,7 @@ func (cur returnOrders) GetName() string {
 func (returnOrders) Description() string {
 	return `Вернуть заказ курьеру. На вход принимается ID заказа. Метод должен удалять заказ из вашего файла.
 	     Можно вернуть только те заказы, у которых вышел срок хранения и если заказы не были выданы клиенту.
-	     Использование: returnOrd --ord=1`
+	     Использование: returnOrd -ord=1`
 }
 
 func (cur returnOrders) Execute(st storage.Storage) error {

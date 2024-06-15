@@ -39,7 +39,7 @@ func (cur AcceptOrder) Execute(s storage.Storage) error {
 func (AcceptOrder) Description() string {
 	return `Принять заказ от курьера. На вход принимается ID заказа, ID получателя и срок хранения. 
 	     Заказ нельзя принять дважды. Если срок хранения в прошлом, приложение выдаст ошибку.
-	     Использование: acceptOrd --user=1 -ord 1 -st=2024-06-05T10`
+	     Использование: acceptOrd -user=1 -ord=1 -st=2024-06-05T10`
 }
 
 func (AcceptOrder) Validate(m map[string]string) (Command, error) {

@@ -15,14 +15,14 @@ type ArgsParser struct {
 }
 
 func GetCommands() []commands.Command {
-	ans := make([]commands.Command, 0)
-	ans = append(ans, commands.NewAcceptOrd())
-	ans = append(ans, commands.NewAcceptReturn())
-	ans = append(ans, commands.NewDeliverOrd())
-	ans = append(ans, commands.NewGetOrds())
-	ans = append(ans, commands.NewGetReturns())
-	ans = append(ans, commands.NewReturnOrd())
-	return ans
+	return []commands.Command{
+		commands.NewAcceptOrd(),
+		commands.NewAcceptReturn(),
+		commands.NewDeliverOrd(),
+		commands.NewGetOrds(),
+		commands.NewGetReturns(),
+		commands.NewReturnOrd(),
+	}
 }
 
 // getArgs принимает список аргументов и возвращает словарь, где ключ - это название флага, а значение - это значение данного флага

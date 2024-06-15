@@ -19,6 +19,7 @@ func NewCLI(storage storage.Storage, parser parser.Parser) CLI {
 }
 
 func (c CLI) Help() {
+	fmt.Println("Утилита для управления ПВЗ. Для аргументов команд можно использовать следующие форматы: -word=x --word=x -word x --word x. В примерах будет использован только формат -word=x. Список команд:")
 	commands := parser.GetCommands()
 	for i, elem := range commands {
 		fmt.Printf("%d) Команда: %s\n   Описание: %s\n", i+1, elem.GetName(), elem.Description())

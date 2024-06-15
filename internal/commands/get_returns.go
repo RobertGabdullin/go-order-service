@@ -51,7 +51,7 @@ func (cur getReturns) Execute(st storage.Storage) error {
 
 func (getReturns) Description() string {
 	return `Получить список возвратов. Можно указать отступ (offset) и максимальное количество строк вывода (limit). Строки отсортированы по дате возврата.
-	     Использование: getReturns --offset=15 --limit 30`
+	     Использование: getReturns -offset=15 -limit=30`
 }
 
 func (getReturns) Validate(m map[string]string) (Command, error) {

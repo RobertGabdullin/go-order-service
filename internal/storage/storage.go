@@ -27,7 +27,7 @@ func New(fileName string) (JSONStorage, error) {
 	if _, err := os.Stat(s.fileName); errors.Is(err, os.ErrNotExist) {
 
 		if errCreateFile := s.createFile(); errCreateFile != nil {
-			return JSONStorage{""}, errCreateFile
+			return JSONStorage{}, errCreateFile
 		}
 	}
 
