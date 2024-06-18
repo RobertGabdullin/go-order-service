@@ -18,8 +18,8 @@ func NewGetOrds() getOrders {
 }
 
 func (getOrders) Description() string {
-	return `Получить список заказов. На вход принимается ID пользователя как обязательный параметр и опциональные параметры.
-	     Параметры позволяют получать только последние N заказов или заказы клиента, находящиеся в нашем ПВЗ
+	return `Получить список заказов. На вход принимается ID пользователя (user) как обязательный параметр.
+	     Также можно указать опциональный параметр (count), который позволяет получить только последние N заказов.
 	     Использование: getOrds -user=1 -count=5`
 }
 
@@ -27,7 +27,7 @@ func SetGetOrds(user, count int) getOrders {
 	return getOrders{user, count}
 }
 
-func (cur getOrders) GetName() string {
+func (getOrders) GetName() string {
 	return "getOrds"
 }
 
@@ -50,34 +50,29 @@ func (cur getOrders) Execute(st storage.Storage) error {
 	return nil
 }
 
-func (getOrders) Validate(m map[string]string) (Command, error) {
+func (cmd getOrders) AssignArgs(m map[string]string) (Command, error) {
 	if len(m) < 1 || len(m) > 2 {
-		return NewGetOrds(), errors.New("invalid number of flags")
+		return nil, errors.New("invalid number of flags")
 	}
 
 	user, count := 0, -1
-	ok := true
 	var err error
 
-	for key, elem := range m {
-		if key == "user" {
-			user, err = strconv.Atoi(elem)
-			if err != nil {
-				ok = false
-			}
-		} else if key == "count" {
-			count, err = strconv.Atoi(elem)
-			if err != nil || count < 0 {
-				ok = false
-			}
-		} else {
-			ok = false
+	if userStr, ok := m["user"]; ok {
+		user, err = strconv.Atoi(userStr)
+		if err != nil {
+			return nil, errors.New("invalid value for user")
+		}
+	} else {
+		return nil, errors.New("missing user flag")
+	}
+
+	if countStr, ok := m["count"]; ok {
+		count, err = strconv.Atoi(countStr)
+		if err != nil || count < 0 {
+			return nil, errors.New("invalid value for count")
 		}
 	}
 
-	if ok {
-		return SetGetOrds(user, count), nil
-	}
-
-	return NewGetOrds(), errors.New("invalid flag")
+	return SetGetOrds(user, count), nil
 }

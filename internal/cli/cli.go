@@ -3,19 +3,22 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/commands"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
 )
 
 type CLI struct {
 	storage storage.Storage
 	parser  parser.Parser
+	mu      *sync.Mutex
 }
 
 func NewCLI(storage storage.Storage, parser parser.Parser) CLI {
-	return CLI{storage, parser}
+	return CLI{storage, parser, new(sync.Mutex)}
 }
 
 func (c CLI) Help() {
@@ -26,11 +29,11 @@ func (c CLI) Help() {
 	}
 }
 
-func validate(cmd string, args map[string]string) (commands.Command, error) {
+func Find(cmd string) (commands.Command, error) {
 	listCmd := parser.GetCommands()
 	for _, elem := range listCmd {
 		if elem.GetName() == cmd {
-			return elem.Validate(args)
+			return elem, nil
 		}
 	}
 	return nil, errors.New("unknown command")
@@ -43,16 +46,26 @@ func (c CLI) Run(input string) error {
 		return err
 	}
 
-	cmd, errValidate := validate(cmdName, mapArgs)
+	cmd, errFind := Find(cmdName)
+	if errFind != nil {
+		return errFind
+	}
+
+	cmd, errValidate := cmd.AssignArgs(mapArgs)
 	if errValidate != nil {
 		return errValidate
 	}
+
+	hash := hash.GenerateHash()
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	err = cmd.Execute(c.storage)
 	if err != nil {
 		return err
 	}
 
-	return c.storage.UpdateHash()
+	return c.storage.UpdateHash(hash)
 
 }

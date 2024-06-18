@@ -21,7 +21,7 @@ func SetAcceptReturn(user, order int) acceptReturn {
 	return acceptReturn{user, order}
 }
 
-func (cur acceptReturn) GetName() string {
+func (acceptReturn) GetName() string {
 	return "acceptReturn"
 }
 
@@ -49,32 +49,33 @@ func (cur acceptReturn) Execute(s storage.Storage) error {
 	return errors.New("order with such ids does not exist")
 }
 
-func (acceptReturn) Validate(m map[string]string) (Command, error) {
+func (cmd acceptReturn) AssignArgs(m map[string]string) (Command, error) {
 	if len(m) != 2 {
-		return NewAcceptReturn(), errors.New("invalid number of flags")
+		return nil, errors.New("invalid number of flags")
 	}
+
 	var user, order int
 	var err error
-	ok := true
-	for key, elem := range m {
-		if key == "user" {
-			user, err = strconv.Atoi(elem)
-			if err != nil {
-				ok = false
-			}
-		} else if key == "ord" {
-			order, err = strconv.Atoi(elem)
-			if err != nil {
-				ok = false
-			}
-		} else {
-			ok = false
+
+	if userStr, ok := m["user"]; ok {
+		user, err = strconv.Atoi(userStr)
+		if err != nil {
+			return nil, errors.New("invalid value for user")
 		}
+	} else {
+		return nil, errors.New("missing user flag")
 	}
-	if ok {
-		return SetAcceptReturn(user, order), nil
+
+	if orderStr, ok := m["ord"]; ok {
+		order, err = strconv.Atoi(orderStr)
+		if err != nil {
+			return nil, errors.New("invalid value for order")
+		}
+	} else {
+		return nil, errors.New("missing ord flag")
 	}
-	return NewAcceptReturn(), errors.New("invalid flag value")
+
+	return SetAcceptReturn(user, order), nil
 }
 
 func (acceptReturn) Description() string {

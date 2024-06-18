@@ -21,7 +21,7 @@ func SetDeliverOrd(ords []int) deliverOrder {
 	return deliverOrder{ords}
 }
 
-func (cur deliverOrder) GetName() string {
+func (deliverOrder) GetName() string {
 	return "deliverOrd"
 }
 
@@ -57,7 +57,7 @@ func (cur deliverOrder) Execute(st storage.Storage) error {
 }
 
 func (deliverOrder) Description() string {
-	return `Выдать заказ клиенту. На вход принимается список ID заказов. 
+	return `Выдать заказ клиенту. На вход принимается список ID заказов (ords). 
 	     Можно выдавать только те заказы, которые были приняты от курьера и чей срок хранения меньше текущей даты.
 	     Все ID заказов должны принадлежать только одному клиенту.
 	     Использование: deliverOrd -ords=[1,2,34]`
@@ -86,25 +86,22 @@ func convertToInt(in string) ([]int, error) {
 
 }
 
-func (deliverOrder) Validate(m map[string]string) (Command, error) {
+func (cmd deliverOrder) AssignArgs(m map[string]string) (Command, error) {
 	if len(m) != 1 {
-		return NewDeliverOrd(), errors.New("invalid number of arguments")
+		return nil, errors.New("invalid number of flags")
 	}
 
 	var ords []int
 	var err error
 
-	for key, elem := range m {
-		if key == "ords" {
-			ords, err = convertToInt(elem)
-			if err != nil {
-				return NewDeliverOrd(), err
-			}
-		} else {
-			return NewDeliverOrd(), errors.New("invalid flag name")
+	if elem, ok := m["ords"]; ok {
+		ords, err = convertToInt(elem)
+		if err != nil {
+			return nil, err
 		}
+	} else {
+		return nil, errors.New("missing ords flag")
 	}
 
 	return SetDeliverOrd(ords), nil
-
 }

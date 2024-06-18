@@ -20,7 +20,7 @@ func SetReturnOrd(order int) returnOrders {
 	return returnOrders{order}
 }
 
-func (cur returnOrders) GetName() string {
+func (returnOrders) GetName() string {
 	return "returnOrd"
 }
 
@@ -56,28 +56,22 @@ func (cur returnOrders) Execute(st storage.Storage) error {
 	return st.ChangeStatus(ords[0].Id, "deleted")
 }
 
-func (returnOrders) Validate(m map[string]string) (Command, error) {
+func (cmd returnOrders) AssignArgs(m map[string]string) (Command, error) {
 	if len(m) != 1 {
-		return NewReturnOrd(), errors.New("invalid number of flags")
+		return nil, errors.New("invalid number of flags")
 	}
 
 	var order int
 	var err error
-	ok := true
 
-	for key, elem := range m {
-		if key == "ord" {
-			order, err = strconv.Atoi(elem)
-			if err != nil {
-				ok = false
-			}
-		} else {
-			ok = false
+	if elem, ok := m["ord"]; ok {
+		order, err = strconv.Atoi(elem)
+		if err != nil || order < 0 {
+			return nil, errors.New("invalid value for ord")
 		}
+	} else {
+		return nil, errors.New("invalid flag name")
 	}
 
-	if ok {
-		return SetReturnOrd(order), nil
-	}
-	return NewReturnOrd(), errors.New("invalud flag value")
+	return SetReturnOrd(order), nil
 }

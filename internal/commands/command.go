@@ -5,7 +5,7 @@ import (
 )
 
 type Command interface {
-	Validate(map[string]string) (Command, error)
+	AssignArgs(map[string]string) (Command, error)
 	Execute(st storage.Storage) error
 	Description() string
 	GetName() string

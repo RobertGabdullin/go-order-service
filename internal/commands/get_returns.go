@@ -22,7 +22,7 @@ func SetGetReturns(offset, limit int) getReturns {
 	return getReturns{offset, limit}
 }
 
-func (cur getReturns) GetName() string {
+func (getReturns) GetName() string {
 	return "getReturns"
 }
 
@@ -33,7 +33,7 @@ func (cur getReturns) Execute(st storage.Storage) error {
 	}
 
 	sort.Slice(ords, func(i, j int) bool {
-		return ords[i].AcceptedAt.Before(ords[j].AcceptedAt)
+		return ords[i].ReturnedAt.Before(ords[j].ReturnedAt)
 	})
 
 	cnt := 1
@@ -42,7 +42,7 @@ func (cur getReturns) Execute(st storage.Storage) error {
 	}
 
 	for i := cur.offset; i < len(ords) && cnt <= cur.limit; i++ {
-		fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s acceptedAt = %s\n", cnt, ords[i].Id, ords[i].Recipient, ords[i].Limit, ords[i].AcceptedAt)
+		fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s acceptedAt = %s\n", cnt, ords[i].Id, ords[i].Recipient, ords[i].Limit, ords[i].ReturnedAt)
 		cnt++
 	}
 
@@ -54,9 +54,9 @@ func (getReturns) Description() string {
 	     Использование: getReturns -offset=15 -limit=30`
 }
 
-func (getReturns) Validate(m map[string]string) (Command, error) {
+func (cmd getReturns) AssignArgs(m map[string]string) (Command, error) {
 	if len(m) > 2 {
-		return NewGetReturns(), errors.New("invalid number of flags")
+		return nil, errors.New("invalid number of flags")
 	}
 
 	offset, limit := 0, -1
@@ -82,5 +82,5 @@ func (getReturns) Validate(m map[string]string) (Command, error) {
 	if ok {
 		return SetGetReturns(offset, limit), nil
 	}
-	return NewGetReturns(), errors.New("invalid flag value")
+	return nil, errors.New("invalid flag value")
 }

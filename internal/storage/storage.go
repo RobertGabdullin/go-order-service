@@ -5,8 +5,6 @@ import (
 	"errors"
 	"os"
 	"time"
-
-	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
 )
 
 type Storage interface {
@@ -15,7 +13,7 @@ type Storage interface {
 	FindOrders([]int) ([]Order, error)
 	ListOrders(int) ([]Order, error)
 	GetReturns() ([]Order, error)
-	UpdateHash() error
+	UpdateHash(hash string) error
 }
 
 type JSONStorage struct {
@@ -74,7 +72,7 @@ func (s JSONStorage) ChangeStatus(id int, status string) error {
 				records.Orders[i].DeliviredAt = time.Now()
 			}
 			if status == "returned" {
-				records.Orders[i].AcceptedAt = time.Now()
+				records.Orders[i].ReturnedAt = time.Now()
 			}
 			ok = true
 		}
@@ -168,7 +166,7 @@ func (s JSONStorage) GetReturns() ([]Order, error) {
 	return ans, nil
 }
 
-func (s JSONStorage) UpdateHash() error {
+func (s JSONStorage) UpdateHash(hash string) error {
 
 	b, err := os.ReadFile(s.fileName)
 	if err != nil {
@@ -180,7 +178,7 @@ func (s JSONStorage) UpdateHash() error {
 		return errUnmarshal
 	}
 
-	records.CurHash = hash.GenerateHash()
+	records.CurHash = hash
 
 	bWrite, errMarshal := json.MarshalIndent(records, "  ", "  ")
 	if errMarshal != nil {

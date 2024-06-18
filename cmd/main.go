@@ -32,7 +32,6 @@ func main() {
 
 	commandChan := make(chan string, 10)
 	var wg sync.WaitGroup
-	var mu sync.Mutex
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -40,7 +39,10 @@ func main() {
 	numWorkers := 2
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go worker(commandChan, &cmd, &mu, &wg)
+		go func() {
+			defer wg.Done()
+			worker(commandChan, &cmd)
+		}()
 	}
 
 	go func() {
@@ -70,22 +72,19 @@ func main() {
 	wg.Wait()
 }
 
-func worker(commandChan <-chan string, cmd *cli.CLI, mu *sync.Mutex, wg *sync.WaitGroup) {
-	defer wg.Done()
+func worker(commandChan <-chan string, cmd *cli.CLI) {
 	for input := range commandChan {
 		if input == "help" {
 			cmd.Help()
 			continue
 		}
-		go func(input string) {
-			mu.Lock()
-			defer mu.Unlock()
-			errRun := cmd.Run(input)
-			if errRun != nil {
-				fmt.Println(errRun)
-			} else {
-				fmt.Println("Success!")
-			}
-		}(input)
+
+		errRun := cmd.Run(input)
+		if errRun != nil {
+			fmt.Println(errRun)
+		} else {
+			fmt.Println("Success!")
+		}
+
 	}
 }

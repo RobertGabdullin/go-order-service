@@ -11,8 +11,7 @@ type Parser interface {
 	Parse(line string) (string, map[string]string, error)
 }
 
-type ArgsParser struct {
-}
+type ArgsParser struct{}
 
 func GetCommands() []commands.Command {
 	return []commands.Command{
