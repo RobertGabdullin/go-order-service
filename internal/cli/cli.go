@@ -51,9 +51,9 @@ func (c CLI) Run(input string) error {
 		return errFind
 	}
 
-	cmd, errValidate := cmd.AssignArgs(mapArgs)
-	if errValidate != nil {
-		return errValidate
+	cmd, errAssign := cmd.AssignArgs(mapArgs)
+	if errAssign != nil {
+		return errAssign
 	}
 
 	hash := hash.GenerateHash()
