@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
 type acceptReturn struct {
@@ -25,7 +25,7 @@ func (acceptReturn) GetName() string {
 	return "acceptReturn"
 }
 
-func (cur acceptReturn) Execute(s storage.Storage) error {
+func (cur acceptReturn) Execute(s service.StorageService) error {
 	temp := make([]int, 0)
 	temp = append(temp, cur.order)
 	ords, err := s.FindOrders(temp)
@@ -38,7 +38,7 @@ func (cur acceptReturn) Execute(s storage.Storage) error {
 		if elem.Id == cur.order {
 			if elem.Status != "delivered" {
 				return errors.New("such an order has never been issued")
-			} else if elem.DeliviredAt.AddDate(0, 0, 2).Before(time.Now()) {
+			} else if elem.DeliveredAt.AddDate(0, 0, 2).Before(time.Now()) {
 				return errors.New("the order can only be returned within two days after issue")
 			} else {
 				return s.ChangeStatus(cur.order, "returned")

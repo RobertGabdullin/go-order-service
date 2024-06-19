@@ -9,26 +9,37 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cli"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 )
 
-const (
-	fileName = "orders.json"
-)
-
 func main() {
-	reader := bufio.NewReader(os.Stdin)
-
-	storageJSON, errCreate := storage.New(fileName)
-	if errCreate != nil {
-		fmt.Println(errCreate)
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file")
 		return
 	}
 
+	reader := bufio.NewReader(os.Stdin)
+
+	connUrl := os.Getenv("DATABASE_URL")
+	if connUrl == "" {
+		fmt.Println("DATABASE_URL environment variable is not set")
+		return
+	}
+	postgresStorage, err := storage.NewPostgresStorage(connUrl)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	orderService := service.NewPostgresService(postgresStorage)
+
 	parser := parser.ArgsParser{}
-	cmd := cli.NewCLI(storageJSON, parser)
+	cmd := cli.NewCLI(orderService, parser)
 
 	commandChan := make(chan string, 10)
 	var wg sync.WaitGroup
@@ -85,6 +96,5 @@ func worker(commandChan <-chan string, cmd *cli.CLI) {
 		} else {
 			fmt.Println("Success!")
 		}
-
 	}
 }

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
 type deliverOrder struct {
@@ -25,7 +25,7 @@ func (deliverOrder) GetName() string {
 	return "deliverOrd"
 }
 
-func (cur deliverOrder) Execute(st storage.Storage) error {
+func (cur deliverOrder) Execute(st service.StorageService) error {
 	ords, err := st.FindOrders(cur.ords)
 
 	if err != nil {

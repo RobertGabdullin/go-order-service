@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
 type getOrders struct {
@@ -31,7 +31,7 @@ func (getOrders) GetName() string {
 	return "getOrds"
 }
 
-func (cur getOrders) Execute(st storage.Storage) error {
+func (cur getOrders) Execute(st service.StorageService) error {
 	ords, err := st.ListOrders(cur.user)
 
 	if err != nil {

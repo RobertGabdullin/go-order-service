@@ -5,7 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
 type AcceptOrder struct {
@@ -26,13 +27,13 @@ func (AcceptOrder) GetName() string {
 	return "acceptOrd"
 }
 
-func (cur AcceptOrder) Execute(s storage.Storage) error {
+func (cur AcceptOrder) Execute(s service.StorageService) error {
 
 	if cur.limit.Before(time.Now()) {
 		return errors.New("storage time is out")
 	}
 
-	return s.AddOrder(storage.NewOrder(cur.order, cur.recipient, cur.limit, "alive"))
+	return s.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.limit, "alive"))
 
 }
 
@@ -75,7 +76,7 @@ func (cmd AcceptOrder) AssignArgs(m map[string]string) (Command, error) {
 			return nil, errors.New("invalid value for lim")
 		}
 	} else {
-		return nil, errors.New("missing st flag")
+		return nil, errors.New("missing lim flag")
 	}
 
 	return SetAcceptOrd(user, order, storage), nil

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strconv"
 
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
 type getReturns struct {
@@ -26,7 +26,7 @@ func (getReturns) GetName() string {
 	return "getReturns"
 }
 
-func (cur getReturns) Execute(st storage.Storage) error {
+func (cur getReturns) Execute(st service.StorageService) error {
 	ords, err := st.GetReturns()
 	if err != nil {
 		return err

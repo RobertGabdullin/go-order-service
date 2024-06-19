@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
 type returnOrders struct {
@@ -30,7 +30,7 @@ func (returnOrders) Description() string {
 	     Использование: returnOrd -ord=1`
 }
 
-func (cur returnOrders) Execute(st storage.Storage) error {
+func (cur returnOrders) Execute(st service.StorageService) error {
 
 	temp := make([]int, 0)
 	temp = append(temp, cur.order)
@@ -53,7 +53,7 @@ func (cur returnOrders) Execute(st storage.Storage) error {
 		return errors.New("order should be out of storage limit")
 	}
 
-	return st.ChangeStatus(ords[0].Id, "deleted")
+	return st.DeleteOrder(cur.order)
 }
 
 func (cmd returnOrders) AssignArgs(m map[string]string) (Command, error) {

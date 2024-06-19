@@ -7,18 +7,22 @@ import (
 
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/commands"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
 )
 
 type CLI struct {
-	storage storage.Storage
+	storage service.StorageService
 	parser  parser.Parser
 	mu      *sync.Mutex
 }
 
-func NewCLI(storage storage.Storage, parser parser.Parser) CLI {
-	return CLI{storage, parser, new(sync.Mutex)}
+func NewCLI(storage service.StorageService, parser parser.Parser) CLI {
+	return CLI{
+		storage: storage,
+		parser:  parser,
+		mu:      new(sync.Mutex),
+	}
 }
 
 func (c CLI) Help() {
