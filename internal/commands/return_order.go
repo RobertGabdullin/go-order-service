@@ -3,21 +3,23 @@ package commands
 import (
 	"errors"
 	"strconv"
+	"sync"
 	"time"
 
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
 type returnOrders struct {
-	order int
+	service service.StorageService
+	order   int
 }
 
-func NewReturnOrd() returnOrders {
-	return returnOrders{}
+func NewReturnOrd(service service.StorageService) returnOrders {
+	return returnOrders{service: service}
 }
 
-func SetReturnOrd(order int) returnOrders {
-	return returnOrders{order}
+func SetReturnOrd(service service.StorageService, order int) returnOrders {
+	return returnOrders{service, order}
 }
 
 func (returnOrders) GetName() string {
@@ -25,17 +27,18 @@ func (returnOrders) GetName() string {
 }
 
 func (returnOrders) Description() string {
-	return `Вернуть заказ курьеру. На вход принимается ID заказа. Метод должен удалять заказ из вашего файла.
+	return `Вернуть заказ курьеру. На вход принимается ID заказа (order). Метод должен удалять заказ из вашего файла.
 	     Можно вернуть только те заказы, у которых вышел срок хранения и если заказы не были выданы клиенту.
-	     Использование: returnOrd -ord=1`
+	     Использование: returnOrd -order=1`
 }
 
-func (cur returnOrders) Execute(st service.StorageService) error {
+func (cur returnOrders) Execute(mu *sync.Mutex) error {
 
-	temp := make([]int, 0)
-	temp = append(temp, cur.order)
+	mu.Lock()
+	defer mu.Unlock()
 
-	ords, err := st.FindOrders(temp)
+	temp := []int{cur.order}
+	ords, err := cur.service.FindOrders(temp)
 
 	if err != nil {
 		return err
@@ -53,7 +56,7 @@ func (cur returnOrders) Execute(st service.StorageService) error {
 		return errors.New("order should be out of storage limit")
 	}
 
-	return st.DeleteOrder(cur.order)
+	return cur.service.DeleteOrder(cur.order)
 }
 
 func (cmd returnOrders) AssignArgs(m map[string]string) (Command, error) {
@@ -64,14 +67,14 @@ func (cmd returnOrders) AssignArgs(m map[string]string) (Command, error) {
 	var order int
 	var err error
 
-	if elem, ok := m["ord"]; ok {
+	if elem, ok := m["order"]; ok {
 		order, err = strconv.Atoi(elem)
 		if err != nil || order < 0 {
-			return nil, errors.New("invalid value for ord")
+			return nil, errors.New("invalid value for order")
 		}
 	} else {
 		return nil, errors.New("invalid flag name")
 	}
 
-	return SetReturnOrd(order), nil
+	return SetReturnOrd(cmd.service, order), nil
 }

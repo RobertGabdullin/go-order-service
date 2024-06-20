@@ -31,7 +31,7 @@ func main() {
 		fmt.Println("DATABASE_URL environment variable is not set")
 		return
 	}
-	postgresStorage, err := storage.NewPostgresStorage(connUrl)
+	postgresStorage, err := storage.New(connUrl)
 	if err != nil {
 		fmt.Println(err)
 		return

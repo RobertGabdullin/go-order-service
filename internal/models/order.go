@@ -9,9 +9,10 @@ type Order struct {
 	DeliveredAt time.Time
 	ReturnedAt  time.Time
 	Status      string
+	Hash        string
 }
 
-func NewOrder(id, recipient int, limit time.Time, status string) Order {
+func NewOrder(id, recipient int, limit time.Time, status, hash string) Order {
 	return Order{
 		Id:          id,
 		Recipient:   recipient,
@@ -19,5 +20,6 @@ func NewOrder(id, recipient int, limit time.Time, status string) Order {
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Status:      status,
+		Hash:        hash,
 	}
 }

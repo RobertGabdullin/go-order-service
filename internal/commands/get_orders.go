@@ -4,17 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
 type getOrders struct {
-	user  int
-	count int
+	service service.StorageService
+	user    int
+	count   int
 }
 
-func NewGetOrds() getOrders {
-	return getOrders{}
+func NewGetOrds(service service.StorageService) getOrders {
+	return getOrders{service: service}
 }
 
 func (getOrders) Description() string {
@@ -23,16 +25,19 @@ func (getOrders) Description() string {
 	     Использование: getOrds -user=1 -count=5`
 }
 
-func SetGetOrds(user, count int) getOrders {
-	return getOrders{user, count}
+func SetGetOrds(service service.StorageService, user, count int) getOrders {
+	return getOrders{service, user, count}
 }
 
 func (getOrders) GetName() string {
 	return "getOrds"
 }
 
-func (cur getOrders) Execute(st service.StorageService) error {
-	ords, err := st.ListOrders(cur.user)
+func (cur getOrders) Execute(mu *sync.Mutex) error {
+
+	mu.Lock()
+	ords, err := cur.service.ListOrders(cur.user)
+	mu.Unlock()
 
 	if err != nil {
 		return err
@@ -74,5 +79,5 @@ func (cmd getOrders) AssignArgs(m map[string]string) (Command, error) {
 		}
 	}
 
-	return SetGetOrds(user, count), nil
+	return SetGetOrds(cmd.service, user, count), nil
 }

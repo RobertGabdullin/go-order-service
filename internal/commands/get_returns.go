@@ -3,47 +3,42 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
+	"sync"
 
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
 type getReturns struct {
-	offset int
-	limit  int
+	service service.StorageService
+	offset  int
+	limit   int
 }
 
-func NewGetReturns() getReturns {
-	return getReturns{}
+func NewGetReturns(service service.StorageService) getReturns {
+	return getReturns{service: service}
 }
 
-func SetGetReturns(offset, limit int) getReturns {
-	return getReturns{offset, limit}
+func SetGetReturns(service service.StorageService, offset, limit int) getReturns {
+	return getReturns{service, offset, limit}
 }
 
 func (getReturns) GetName() string {
 	return "getReturns"
 }
 
-func (cur getReturns) Execute(st service.StorageService) error {
-	ords, err := st.GetReturns()
+func (cur getReturns) Execute(mu *sync.Mutex) error {
+
+	mu.Lock()
+	ords, err := cur.service.GetReturns(cur.offset, cur.limit)
+	mu.Unlock()
+
 	if err != nil {
 		return err
 	}
 
-	sort.Slice(ords, func(i, j int) bool {
-		return ords[i].ReturnedAt.Before(ords[j].ReturnedAt)
-	})
-
-	cnt := 1
-	if cur.limit == -1 {
-		cur.limit = len(ords)
-	}
-
-	for i := cur.offset; i < len(ords) && cnt <= cur.limit; i++ {
-		fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s acceptedAt = %s\n", cnt, ords[i].Id, ords[i].Recipient, ords[i].Limit, ords[i].ReturnedAt)
-		cnt++
+	for i := range ords {
+		fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s acceptedAt = %s\n", i+1, ords[i].Id, ords[i].Recipient, ords[i].Limit, ords[i].ReturnedAt)
 	}
 
 	return nil
@@ -80,7 +75,7 @@ func (cmd getReturns) AssignArgs(m map[string]string) (Command, error) {
 	}
 
 	if ok {
-		return SetGetReturns(offset, limit), nil
+		return SetGetReturns(cmd.service, offset, limit), nil
 	}
 	return nil, errors.New("invalid flag value")
 }

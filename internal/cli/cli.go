@@ -8,33 +8,39 @@ import (
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/commands"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
 )
 
 type CLI struct {
-	storage service.StorageService
-	parser  parser.Parser
-	mu      *sync.Mutex
+	parser   parser.Parser
+	mu       *sync.Mutex
+	commands []commands.Command
 }
 
 func NewCLI(storage service.StorageService, parser parser.Parser) CLI {
 	return CLI{
-		storage: storage,
-		parser:  parser,
-		mu:      new(sync.Mutex),
+		parser: parser,
+		mu:     new(sync.Mutex),
+		commands: []commands.Command{
+			commands.NewAcceptOrd(storage),
+			commands.NewAcceptReturn(storage),
+			commands.NewDeliverOrd(storage),
+			commands.NewGetOrds(storage),
+			commands.NewGetReturns(storage),
+			commands.NewReturnOrd(storage),
+		},
 	}
 }
 
 func (c CLI) Help() {
 	fmt.Println("Утилита для управления ПВЗ. Для аргументов команд можно использовать следующие форматы: -word=x --word=x -word x --word x. В примерах будет использован только формат -word=x. Список команд:")
-	commands := parser.GetCommands()
+	commands := c.commands
 	for i, elem := range commands {
 		fmt.Printf("%d) Команда: %s\n   Описание: %s\n", i+1, elem.GetName(), elem.Description())
 	}
 }
 
-func Find(cmd string) (commands.Command, error) {
-	listCmd := parser.GetCommands()
+func (c CLI) Find(cmd string) (commands.Command, error) {
+	listCmd := c.commands
 	for _, elem := range listCmd {
 		if elem.GetName() == cmd {
 			return elem, nil
@@ -44,13 +50,12 @@ func Find(cmd string) (commands.Command, error) {
 }
 
 func (c CLI) Run(input string) error {
-
 	cmdName, mapArgs, err := c.parser.Parse(input)
 	if err != nil {
 		return err
 	}
 
-	cmd, errFind := Find(cmdName)
+	cmd, errFind := c.Find(cmdName)
 	if errFind != nil {
 		return errFind
 	}
@@ -60,16 +65,5 @@ func (c CLI) Run(input string) error {
 		return errAssign
 	}
 
-	hash := hash.GenerateHash()
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	err = cmd.Execute(c.storage)
-	if err != nil {
-		return err
-	}
-
-	return c.storage.UpdateHash(hash)
-
+	return cmd.Execute(c.mu)
 }

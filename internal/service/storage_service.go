@@ -6,10 +6,9 @@ import (
 
 type StorageService interface {
 	AddOrder(models.Order) error
-	ChangeStatus(id int, status string) error
+	ChangeStatus(id int, status, hash string) error
 	FindOrders(ids []int) ([]models.Order, error)
 	ListOrders(recipient int) ([]models.Order, error)
-	GetReturns() ([]models.Order, error)
-	UpdateHash(hash string) error
+	GetReturns(offset, limit int) ([]models.Order, error)
 	DeleteOrder(id int) error
 }

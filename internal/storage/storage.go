@@ -12,10 +12,8 @@ type Storage interface {
 	DeleteOrder(id int) error
 	GetOrderById(id int) (models.Order, error)
 	GetOrdersByRecipient(recipient int) ([]models.Order, error)
-	GetOrdersByStatus(status string) ([]models.Order, error)
-	UpdateHash(hash string) error
-	InsertHash(hash string) error
-	HashExists() (bool, error)
+	GetPaginatedOrdersByStatus(status string, offset, limit int) ([]models.Order, error)
+	UpdateHash(id int, hash string) error
 }
 
 type TransactionalStorage interface {

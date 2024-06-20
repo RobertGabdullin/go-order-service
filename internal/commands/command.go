@@ -1,12 +1,12 @@
 package commands
 
 import (
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
+	"sync"
 )
 
 type Command interface {
 	AssignArgs(map[string]string) (Command, error)
-	Execute(st service.StorageService) error
+	Execute(*sync.Mutex) error
 	Description() string
 	GetName() string
 }

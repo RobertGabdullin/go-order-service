@@ -3,44 +3,52 @@ package commands
 import (
 	"errors"
 	"strconv"
+	"sync"
 	"time"
 
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
 )
 
 type AcceptOrder struct {
+	service   service.StorageService
 	recipient int
 	order     int
-	limit     time.Time
+	expire    time.Time
 }
 
-func NewAcceptOrd() AcceptOrder {
-	return AcceptOrder{}
+func NewAcceptOrd(service service.StorageService) AcceptOrder {
+	return AcceptOrder{service: service}
 }
 
-func SetAcceptOrd(rec, ord int, st time.Time) AcceptOrder {
-	return AcceptOrder{rec, ord, st}
+func SetAcceptOrd(service service.StorageService, rec, ord int, st time.Time) AcceptOrder {
+	return AcceptOrder{service, rec, ord, st}
 }
 
 func (AcceptOrder) GetName() string {
 	return "acceptOrd"
 }
 
-func (cur AcceptOrder) Execute(s service.StorageService) error {
+func (cur AcceptOrder) Execute(mu *sync.Mutex) error {
 
-	if cur.limit.Before(time.Now()) {
+	if cur.expire.Before(time.Now()) {
 		return errors.New("storage time is out")
 	}
 
-	return s.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.limit, "alive"))
+	hash := hash.GenerateHash()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	return cur.service.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.expire, "alive", hash))
 
 }
 
 func (AcceptOrder) Description() string {
-	return `Принять заказ от курьера. На вход принимается ID заказа (ord), ID получателя (user) и срок хранения (lim). 
+	return `Принять заказ от курьера. На вход принимается ID заказа (order), ID получателя (user) и срок хранения (expire). 
 	     Заказ нельзя принять дважды. Если срок хранения в прошлом, приложение выдаст ошибку.
-	     Использование: acceptOrd -user=1 -ord=1 -st=2024-06-05T10`
+	     Использование: acceptOrd -user=1 -order=1 -expire=2024-06-05T10`
 }
 
 func (cmd AcceptOrder) AssignArgs(m map[string]string) (Command, error) {
@@ -61,23 +69,23 @@ func (cmd AcceptOrder) AssignArgs(m map[string]string) (Command, error) {
 		return nil, errors.New("missing user flag")
 	}
 
-	if elem, ok := m["ord"]; ok {
+	if elem, ok := m["order"]; ok {
 		order, err = strconv.Atoi(elem)
 		if err != nil {
-			return nil, errors.New("invalid value for ord")
+			return nil, errors.New("invalid value for order")
 		}
 	} else {
-		return nil, errors.New("missing ord flag")
+		return nil, errors.New("missing order flag")
 	}
 
-	if elem, ok := m["lim"]; ok {
+	if elem, ok := m["expire"]; ok {
 		storage, err = time.Parse("2006-01-02T15", elem)
 		if err != nil {
-			return nil, errors.New("invalid value for lim")
+			return nil, errors.New("invalid value for expire")
 		}
 	} else {
-		return nil, errors.New("missing lim flag")
+		return nil, errors.New("missing expire flag")
 	}
 
-	return SetAcceptOrd(user, order, storage), nil
+	return SetAcceptOrd(cmd.service, user, order, storage), nil
 }

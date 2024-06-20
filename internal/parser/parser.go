@@ -3,8 +3,6 @@ package parser
 import (
 	"errors"
 	"strings"
-
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/commands"
 )
 
 type Parser interface {
@@ -12,17 +10,6 @@ type Parser interface {
 }
 
 type ArgsParser struct{}
-
-func GetCommands() []commands.Command {
-	return []commands.Command{
-		commands.NewAcceptOrd(),
-		commands.NewAcceptReturn(),
-		commands.NewDeliverOrd(),
-		commands.NewGetOrds(),
-		commands.NewGetReturns(),
-		commands.NewReturnOrd(),
-	}
-}
 
 // getArgs принимает список аргументов и возвращает словарь, где ключ - это название флага, а значение - это значение данного флага
 func getArgs(args []string) (map[string]string, error) {

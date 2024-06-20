@@ -4,30 +4,38 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
 )
 
 type deliverOrder struct {
-	ords []int
+	service service.StorageService
+	ords    []int
 }
 
-func NewDeliverOrd() deliverOrder {
-	return deliverOrder{}
+func NewDeliverOrd(service service.StorageService) deliverOrder {
+	return deliverOrder{service: service}
 }
 
-func SetDeliverOrd(ords []int) deliverOrder {
-	return deliverOrder{ords}
+func SetDeliverOrd(service service.StorageService, ords []int) deliverOrder {
+	return deliverOrder{service, ords}
 }
 
 func (deliverOrder) GetName() string {
 	return "deliverOrd"
 }
 
-func (cur deliverOrder) Execute(st service.StorageService) error {
-	ords, err := st.FindOrders(cur.ords)
+func (cur deliverOrder) Execute(mu *sync.Mutex) error {
 
+	hash := hash.GenerateHash()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	ords, err := cur.service.FindOrders(cur.ords)
 	if err != nil {
 		return err
 	}
@@ -47,7 +55,7 @@ func (cur deliverOrder) Execute(st service.StorageService) error {
 		if elem.Limit.Before(time.Now()) {
 			return errors.New("some orders is out of storage limit date")
 		}
-		tempErr := st.ChangeStatus(elem.Id, "delivered")
+		tempErr := cur.service.ChangeStatus(elem.Id, "delivered", hash)
 		if tempErr != nil {
 			return tempErr
 		}
@@ -57,10 +65,10 @@ func (cur deliverOrder) Execute(st service.StorageService) error {
 }
 
 func (deliverOrder) Description() string {
-	return `Выдать заказ клиенту. На вход принимается список ID заказов (ords). 
+	return `Выдать заказ клиенту. На вход принимается список ID заказов (orders). 
 	     Можно выдавать только те заказы, которые были приняты от курьера и чей срок хранения меньше текущей даты.
 	     Все ID заказов должны принадлежать только одному клиенту.
-	     Использование: deliverOrd -ords=[1,2,34]`
+	     Использование: deliverOrd -orders=[1,2,34]`
 }
 
 func convertToInt(in string) ([]int, error) {
@@ -94,14 +102,14 @@ func (cmd deliverOrder) AssignArgs(m map[string]string) (Command, error) {
 	var ords []int
 	var err error
 
-	if elem, ok := m["ords"]; ok {
+	if elem, ok := m["orders"]; ok {
 		ords, err = convertToInt(elem)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		return nil, errors.New("missing ords flag")
+		return nil, errors.New("missing orders flag")
 	}
 
-	return SetDeliverOrd(ords), nil
+	return SetDeliverOrd(cmd.service, ords), nil
 }
