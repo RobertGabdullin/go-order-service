@@ -10,9 +10,12 @@ type Order struct {
 	ReturnedAt  time.Time
 	Status      string
 	Hash        string
+	TotalPrice  int
+	Weight      int
+	Wrapper     string
 }
 
-func NewOrder(id, recipient int, limit time.Time, status, hash string) Order {
+func NewOrder(id, recipient int, limit time.Time, status, hash string, price, weight int, wrapper string) Order {
 	return Order{
 		Id:          id,
 		Recipient:   recipient,
@@ -21,5 +24,8 @@ func NewOrder(id, recipient int, limit time.Time, status, hash string) Order {
 		ReturnedAt:  time.Now(),
 		Status:      status,
 		Hash:        hash,
+		Weight:      weight,
+		TotalPrice:  price,
+		Wrapper:     wrapper,
 	}
 }

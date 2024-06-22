@@ -7,6 +7,9 @@ CREATE TABLE orders (
     time_limit TIMESTAMP,
     delivered_at TIMESTAMP,
     returned_at TIMESTAMP,
+    weight INT,
+    total_cost INT,
+    wrapper TEXT,
     hash TEXT
 );
 -- +goose StatementEnd

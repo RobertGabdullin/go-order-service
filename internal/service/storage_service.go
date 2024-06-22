@@ -11,4 +11,5 @@ type StorageService interface {
 	ListOrders(recipient int) ([]models.Order, error)
 	GetReturns(offset, limit int) ([]models.Order, error)
 	DeleteOrder(id int) error
+	GetWrapper(givenType string) (models.Wrapper, error)
 }

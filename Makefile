@@ -1,4 +1,4 @@
-MIGRATION_DIR=./internal/migrations
+MIGRATION_DIR=./migrations
 
 DB_CONNECTION_STRING=postgres://postgres:postgres@localhost:5432/orders?sslmode=disable
 

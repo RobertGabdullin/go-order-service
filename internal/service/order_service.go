@@ -80,3 +80,14 @@ func (s *OrderService) GetReturns(offset, limit int) ([]models.Order, error) {
 func (s *OrderService) DeleteOrder(id int) error {
 	return s.storage.DeleteOrder(id)
 }
+
+func (s *OrderService) GetWrapper(givenType string) (models.Wrapper, error) {
+	wrappers, err := s.storage.GetWrapperByType(givenType)
+	if err != nil {
+		return models.Wrapper{}, err
+	}
+	if len(wrappers) == 0 {
+		return models.Wrapper{}, errors.New("undefined type")
+	}
+	return wrappers[0], nil
+}

@@ -16,14 +16,17 @@ type AcceptOrder struct {
 	recipient int
 	order     int
 	expire    time.Time
+	weight    int
+	basePrice int
+	wrapper   string
 }
 
 func NewAcceptOrd(service service.StorageService) AcceptOrder {
-	return AcceptOrder{service: service}
+	return AcceptOrder{service: service, wrapper: "none"}
 }
 
-func SetAcceptOrd(service service.StorageService, rec, ord int, st time.Time) AcceptOrder {
-	return AcceptOrder{service, rec, ord, st}
+func SetAcceptOrd(service service.StorageService, rec, ord, weight, basePrice int, expire time.Time, wrapper string) AcceptOrder {
+	return AcceptOrder{service, rec, ord, expire, weight, basePrice, wrapper}
 }
 
 func (AcceptOrder) GetName() string {
@@ -31,33 +34,42 @@ func (AcceptOrder) GetName() string {
 }
 
 func (cur AcceptOrder) Execute(mu *sync.Mutex) error {
-
 	if cur.expire.Before(time.Now()) {
 		return errors.New("storage time is out")
 	}
 
+	wrapper, err := cur.service.GetWrapper(cur.wrapper)
+	if err != nil {
+		return err
+	}
+
+	if wrapper.MaxWeight.Valid && cur.weight > int(wrapper.MaxWeight.Int64) {
+		return errors.New("order weight exceeds the maximum limit for the chosen wrapper")
+	}
+
 	hash := hash.GenerateHash()
+	totalPrice := cur.basePrice + wrapper.Markup
 
 	mu.Lock()
 	defer mu.Unlock()
 
-	return cur.service.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.expire, "alive", hash))
-
+	return cur.service.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.expire, "alive", hash, cur.weight, totalPrice, wrapper.Type))
 }
 
 func (AcceptOrder) Description() string {
-	return `Принять заказ от курьера. На вход принимается ID заказа (order), ID получателя (user) и срок хранения (expire). 
-	     Заказ нельзя принять дважды. Если срок хранения в прошлом, приложение выдаст ошибку.
-	     Использование: acceptOrd -user=1 -order=1 -expire=2024-06-05T10`
+	return `Принять заказ от курьера. На вход принимается ID заказа (order), ID получателя (user), вес товара (weight), базовая цена (basePrice), срок хранения (expire), и опционально обертка (wrapper). 
+		Заказ нельзя принять дважды. Если срок хранения в прошлом, приложение выдаст ошибку.
+		Использование: acceptOrd -user=1 -order=1 -weight=5 -basePrice=100 -expire=2024-06-05T10 -wrapper=pack`
 }
 
 func (cmd AcceptOrder) AssignArgs(m map[string]string) (Command, error) {
-	if len(m) != 3 {
+	if len(m) < 5 || len(m) > 6 {
 		return nil, errors.New("invalid number of flags")
 	}
 
-	var user, order int
-	var storage time.Time
+	var user, order, weight, basePrice int
+	var expire time.Time
+	var wrapper string
 	var err error
 
 	if elem, ok := m["user"]; ok {
@@ -78,8 +90,26 @@ func (cmd AcceptOrder) AssignArgs(m map[string]string) (Command, error) {
 		return nil, errors.New("missing order flag")
 	}
 
+	if elem, ok := m["weight"]; ok {
+		weight, err = strconv.Atoi(elem)
+		if err != nil {
+			return nil, errors.New("invalid value for weight")
+		}
+	} else {
+		return nil, errors.New("missing weight flag")
+	}
+
+	if elem, ok := m["basePrice"]; ok {
+		basePrice, err = strconv.Atoi(elem)
+		if err != nil {
+			return nil, errors.New("invalid value for basePrice")
+		}
+	} else {
+		return nil, errors.New("missing basePrice flag")
+	}
+
 	if elem, ok := m["expire"]; ok {
-		storage, err = time.Parse("2006-01-02T15", elem)
+		expire, err = time.Parse("2006-01-02T15", elem)
 		if err != nil {
 			return nil, errors.New("invalid value for expire")
 		}
@@ -87,5 +117,11 @@ func (cmd AcceptOrder) AssignArgs(m map[string]string) (Command, error) {
 		return nil, errors.New("missing expire flag")
 	}
 
-	return SetAcceptOrd(cmd.service, user, order, storage), nil
+	if elem, ok := m["wrapper"]; ok {
+		wrapper = elem
+	} else {
+		wrapper = "none"
+	}
+
+	return SetAcceptOrd(cmd.service, user, order, weight, basePrice, expire, wrapper), nil
 }

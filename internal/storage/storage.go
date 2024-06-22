@@ -14,6 +14,7 @@ type Storage interface {
 	GetOrdersByRecipient(recipient int) ([]models.Order, error)
 	GetPaginatedOrdersByStatus(status string, offset, limit int) ([]models.Order, error)
 	UpdateHash(id int, hash string) error
+	GetWrapperByType(string) ([]models.Wrapper, error)
 }
 
 type TransactionalStorage interface {
