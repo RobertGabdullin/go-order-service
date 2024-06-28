@@ -9,20 +9,21 @@ import (
 )
 
 type OrderService struct {
-	storage storage.TransactionalStorage
+	orderStorage   storage.TransactionalOrderStorage
+	wrapperStorage storage.WrapperStorage
 }
 
-func NewPostgresService(storage storage.TransactionalStorage) *OrderService {
-	return &OrderService{storage: storage}
+func NewPostgresService(storage storage.TransactionalOrderStorage, wrapperStorage storage.WrapperStorage) *OrderService {
+	return &OrderService{orderStorage: storage, wrapperStorage: wrapperStorage}
 }
 
 func (s *OrderService) AddOrder(ord models.Order) error {
-	return s.storage.AddOrder(ord)
+	return s.orderStorage.AddOrder(ord)
 }
 
 func (s *OrderService) ChangeStatus(id int, status, hash string) error {
 
-	order, err := s.storage.GetOrderById(id)
+	order, err := s.orderStorage.GetOrderById(id)
 	if err != nil {
 		return err
 	}
@@ -36,30 +37,30 @@ func (s *OrderService) ChangeStatus(id int, status, hash string) error {
 		return errors.New("unknown status")
 	}
 
-	tx, err := s.storage.BeginTransaction()
+	tx, err := s.orderStorage.BeginTransaction()
 	if err != nil {
 		return err
 	}
 
-	err = s.storage.UpdateOrder(order)
+	err = s.orderStorage.UpdateOrder(order)
 	if err != nil {
 		return err
 	}
 
-	err = s.storage.UpdateHash(id, hash)
+	err = s.orderStorage.UpdateHash(id, hash)
 	if err != nil {
-		s.storage.RollbackTransaction(tx)
+		s.orderStorage.RollbackTransaction(tx)
 		return err
 	}
 
-	return s.storage.CommitTransaction(tx)
+	return s.orderStorage.CommitTransaction(tx)
 }
 
 func (s *OrderService) FindOrders(ids []int) ([]models.Order, error) {
 
 	var orders []models.Order
 	for _, id := range ids {
-		order, err := s.storage.GetOrderById(id)
+		order, err := s.orderStorage.GetOrderById(id)
 		if err != nil {
 			return nil, err
 		}
@@ -70,19 +71,19 @@ func (s *OrderService) FindOrders(ids []int) ([]models.Order, error) {
 }
 
 func (s *OrderService) ListOrders(recipient int) ([]models.Order, error) {
-	return s.storage.GetOrdersByRecipient(recipient)
+	return s.orderStorage.GetOrdersByRecipient(recipient)
 }
 
 func (s *OrderService) GetReturns(offset, limit int) ([]models.Order, error) {
-	return s.storage.GetPaginatedOrdersByStatus("returned", offset, limit)
+	return s.orderStorage.GetPaginatedOrdersByStatus("returned", offset, limit)
 }
 
 func (s *OrderService) DeleteOrder(id int) error {
-	return s.storage.DeleteOrder(id)
+	return s.orderStorage.DeleteOrder(id)
 }
 
 func (s *OrderService) GetWrapper(givenType string) (models.Wrapper, error) {
-	wrappers, err := s.storage.GetWrapperByType(givenType)
+	wrappers, err := s.wrapperStorage.GetWrapperByType(givenType)
 	if err != nil {
 		return models.Wrapper{}, err
 	}

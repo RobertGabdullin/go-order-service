@@ -48,12 +48,11 @@ func (cur AcceptOrder) Execute(mu *sync.Mutex) error {
 	}
 
 	hash := hash.GenerateHash()
-	totalPrice := cur.basePrice + wrapper.Markup
 
 	mu.Lock()
 	defer mu.Unlock()
 
-	return cur.service.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.expire, "alive", hash, cur.weight, totalPrice, wrapper.Type))
+	return cur.service.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.expire, "alive", hash, cur.weight, cur.basePrice, wrapper.Type))
 }
 
 func (AcceptOrder) Description() string {

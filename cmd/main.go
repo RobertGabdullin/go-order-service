@@ -31,12 +31,18 @@ func main() {
 		fmt.Println("DATABASE_URL environment variable is not set")
 		return
 	}
-	postgresStorage, err := storage.New(connUrl)
+	postgresStorage, err := storage.NewOrderStorage(connUrl)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	orderService := service.NewPostgresService(postgresStorage)
+	wrapperStorage, err := storage.NewWrapperStorage(connUrl)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	orderService := service.NewPostgresService(postgresStorage, wrapperStorage)
 
 	parser := parser.ArgsParser{}
 	cmd := cli.NewCLI(orderService, parser)

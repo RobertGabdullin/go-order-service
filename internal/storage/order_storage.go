@@ -6,7 +6,7 @@ import (
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 )
 
-type Storage interface {
+type OrderStorage interface {
 	AddOrder(models.Order) error
 	UpdateOrder(models.Order) error
 	DeleteOrder(id int) error
@@ -14,11 +14,10 @@ type Storage interface {
 	GetOrdersByRecipient(recipient int) ([]models.Order, error)
 	GetPaginatedOrdersByStatus(status string, offset, limit int) ([]models.Order, error)
 	UpdateHash(id int, hash string) error
-	GetWrapperByType(string) ([]models.Wrapper, error)
 }
 
-type TransactionalStorage interface {
-	Storage
+type TransactionalOrderStorage interface {
+	OrderStorage
 	BeginTransaction() (*sql.Tx, error)
 	CommitTransaction(tx *sql.Tx) error
 	RollbackTransaction(tx *sql.Tx) error
