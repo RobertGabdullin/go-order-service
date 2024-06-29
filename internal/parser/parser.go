@@ -11,8 +11,8 @@ type Parser interface {
 
 type ArgsParser struct{}
 
-// getArgs принимает список аргументов и возвращает словарь, где ключ - это название флага, а значение - это значение данного флага
-func getArgs(args []string) (map[string]string, error) {
+// GetArgs принимает список аргументов и возвращает словарь, где ключ - это название флага, а значение - это значение данного флага
+func (ArgsParser) GetArgs(args []string) (map[string]string, error) {
 	result := make(map[string]string)
 	ok := true
 	i := 0
@@ -61,7 +61,7 @@ func getArgs(args []string) (map[string]string, error) {
 	}
 }
 
-func (ArgsParser) Parse(input string) (string, map[string]string, error) {
+func (p ArgsParser) Parse(input string) (string, map[string]string, error) {
 	parts := strings.Fields(input)
 	var cmd string
 	var argList []string
@@ -72,7 +72,7 @@ func (ArgsParser) Parse(input string) (string, map[string]string, error) {
 	} else {
 		cmd, argList = parts[0], parts[1:]
 	}
-	args, err := getArgs(argList)
+	args, err := p.GetArgs(argList)
 	if err != nil {
 		return "", nil, err
 	}
