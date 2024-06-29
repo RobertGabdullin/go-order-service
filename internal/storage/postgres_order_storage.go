@@ -29,7 +29,7 @@ func NewOrderStorage(connStr string) (*PostgresOrderStorage, error) {
 }
 
 func (s *PostgresOrderStorage) AddOrder(ord models.Order) error {
-	_, err := s.db.Exec(queryInsertOrder, ord.Id, ord.Recipient, ord.Status, ord.Limit, ord.DeliveredAt, ord.ReturnedAt, ord.Hash, ord.Weight, ord.TotalPrice, ord.Wrapper)
+	_, err := s.db.Exec(queryInsertOrder, ord.Id, ord.Recipient, ord.Status, ord.Limit, ord.DeliveredAt, ord.ReturnedAt, ord.Hash, ord.Weight, ord.BasePrice, ord.Wrapper)
 	return err
 }
 

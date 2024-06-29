@@ -10,7 +10,7 @@ type Order struct {
 	ReturnedAt  time.Time
 	Status      string
 	Hash        string
-	TotalPrice  int
+	BasePrice   int
 	Weight      int
 	Wrapper     string
 }
@@ -25,7 +25,7 @@ func NewOrder(id, recipient int, limit time.Time, status, hash string, price, we
 		Status:      status,
 		Hash:        hash,
 		Weight:      weight,
-		TotalPrice:  price,
+		BasePrice:   price,
 		Wrapper:     wrapper,
 	}
 }
