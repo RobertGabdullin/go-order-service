@@ -32,9 +32,9 @@ test-db:
 	docker-compose -f docker-compose.test.yml up -d
 
 clean-test-db:
-	docker-compose run --rm db psql -U postgres -c "DROP DATABASE IF EXISTS orders_test; CREATE DATABASE orders_test;"
+	psql -U postgres -c "DROP DATABASE IF EXISTS orders_test; CREATE DATABASE orders_test;"
 
-test: clean-test-db test-migrate-up test-unit test-integration
+test: clean-test-db test-unit test-integration
 
 
 

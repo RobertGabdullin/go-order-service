@@ -29,3 +29,11 @@ func NewOrder(id, recipient int, limit time.Time, status, hash string, price, we
 		Wrapper:     wrapper,
 	}
 }
+
+func Normalize(ords ...*Order) {
+	for i := range ords {
+		ords[i].Limit = ords[i].Limit.UTC().Truncate(time.Second)
+		ords[i].DeliveredAt = ords[i].DeliveredAt.UTC().Truncate(time.Second)
+		ords[i].ReturnedAt = ords[i].ReturnedAt.UTC().Truncate(time.Second)
+	}
+}

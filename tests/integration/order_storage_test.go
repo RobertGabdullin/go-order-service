@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"database/sql"
 	"testing"
 	"time"
 
@@ -9,20 +8,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 )
 
-func TestOrderService_AddOrder(t *testing.T) {
+func TestOrderStorage_AddOrder(t *testing.T) {
 	db, err := setupDB()
 	require.NoError(t, err)
 	defer teardownDB(db)
 
 	orderStorage, err := storage.NewOrderStorage(dbConnStr)
 	require.NoError(t, err)
-	wrapperStorage, err := storage.NewWrapperStorage(dbConnStr)
-	require.NoError(t, err)
-	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
 
 	order := models.Order{
 		Id:          1,
@@ -37,7 +32,7 @@ func TestOrderService_AddOrder(t *testing.T) {
 		Wrapper:     "pack",
 	}
 
-	err = orderService.AddOrder(order)
+	err = orderStorage.AddOrder(order)
 	assert.NoError(t, err)
 
 	storedOrder, err := orderStorage.GetOrderById(order.Id)
@@ -48,16 +43,13 @@ func TestOrderService_AddOrder(t *testing.T) {
 	assert.Equal(t, order, storedOrder)
 }
 
-func TestOrderService_ChangeStatus(t *testing.T) {
+func TestOrderStorage_UpdateOrder(t *testing.T) {
 	db, err := setupDB()
 	require.NoError(t, err)
 	defer teardownDB(db)
 
 	orderStorage, err := storage.NewOrderStorage(dbConnStr)
 	require.NoError(t, err)
-	wrapperStorage, err := storage.NewWrapperStorage(dbConnStr)
-	require.NoError(t, err)
-	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
 
 	order := models.Order{
 		Id:          1,
@@ -72,197 +64,30 @@ func TestOrderService_ChangeStatus(t *testing.T) {
 		Wrapper:     "pack",
 	}
 
-	err = orderService.AddOrder(order)
+	err = orderStorage.AddOrder(order)
 	require.NoError(t, err)
 
-	err = orderService.ChangeStatus(order.Id, "delivered", "newhash123")
+	order.Status = "delivered"
+	order.Hash = "newhash123"
+
+	err = orderStorage.UpdateOrder(order)
 	assert.NoError(t, err)
 
 	updatedOrder, err := orderStorage.GetOrderById(order.Id)
 	assert.NoError(t, err)
-	assert.Equal(t, "delivered", updatedOrder.Status)
-	assert.NotZero(t, updatedOrder.DeliveredAt)
-	assert.Equal(t, "newhash123", updatedOrder.Hash)
+
+	models.Normalize(&order, &updatedOrder)
+
+	assert.Equal(t, order, updatedOrder)
 }
 
-func TestOrderService_FindOrders(t *testing.T) {
+func TestOrderStorage_DeleteOrder(t *testing.T) {
 	db, err := setupDB()
 	require.NoError(t, err)
 	defer teardownDB(db)
 
 	orderStorage, err := storage.NewOrderStorage(dbConnStr)
 	require.NoError(t, err)
-	wrapperStorage, err := storage.NewWrapperStorage(dbConnStr)
-	require.NoError(t, err)
-	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
-
-	order1 := models.Order{
-		Id:          1,
-		Recipient:   123,
-		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
-		DeliveredAt: time.Time{},
-		ReturnedAt:  time.Time{},
-		Hash:        "hash123",
-		Weight:      10,
-		BasePrice:   1000,
-		Wrapper:     "none",
-	}
-
-	order2 := models.Order{
-		Id:          2,
-		Recipient:   456,
-		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
-		DeliveredAt: time.Now(),
-		ReturnedAt:  time.Now(),
-		Hash:        "hash456",
-		Weight:      15,
-		BasePrice:   1500,
-		Wrapper:     "none",
-	}
-
-	err = orderService.AddOrder(order1)
-	require.NoError(t, err)
-
-	err = orderService.AddOrder(order2)
-	require.NoError(t, err)
-
-	orders, err := orderService.FindOrders([]int{1, 2})
-
-	models.Normalize(&order1, &order2)
-	for i := range orders {
-		models.Normalize(&orders[i])
-	}
-
-	assert.NoError(t, err)
-	assert.Len(t, orders, 2)
-	assert.Contains(t, orders, order1)
-	assert.Contains(t, orders, order2)
-}
-
-func TestOrderService_ListOrders(t *testing.T) {
-	db, err := setupDB()
-	require.NoError(t, err)
-	defer teardownDB(db)
-
-	orderStorage, err := storage.NewOrderStorage(dbConnStr)
-	require.NoError(t, err)
-	wrapperStorage, err := storage.NewWrapperStorage(dbConnStr)
-	require.NoError(t, err)
-	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
-
-	order1 := models.Order{
-		Id:          1,
-		Recipient:   123,
-		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
-		DeliveredAt: time.Now(),
-		ReturnedAt:  time.Now(),
-		Hash:        "hash123",
-		Weight:      10,
-		BasePrice:   1000,
-		Wrapper:     "none",
-	}
-
-	order2 := models.Order{
-		Id:          2,
-		Recipient:   123,
-		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
-		DeliveredAt: time.Now(),
-		ReturnedAt:  time.Now(),
-		Hash:        "hash456",
-		Weight:      15,
-		BasePrice:   1500,
-		Wrapper:     "none",
-	}
-
-	err = orderService.AddOrder(order1)
-	require.NoError(t, err)
-
-	err = orderService.AddOrder(order2)
-	require.NoError(t, err)
-
-	orders, err := orderService.ListOrders(123)
-	assert.NoError(t, err)
-	assert.Len(t, orders, 2)
-
-	models.Normalize(&order1, &order2)
-	for i := range orders {
-		models.Normalize(&orders[i])
-	}
-
-	assert.Contains(t, orders, order1)
-	assert.Contains(t, orders, order2)
-}
-
-func TestOrderService_GetReturns(t *testing.T) {
-	db, err := setupDB()
-	require.NoError(t, err)
-	defer teardownDB(db)
-
-	orderStorage, err := storage.NewOrderStorage(dbConnStr)
-	require.NoError(t, err)
-	wrapperStorage, err := storage.NewWrapperStorage(dbConnStr)
-	require.NoError(t, err)
-	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
-
-	order1 := models.Order{
-		Id:          1,
-		Recipient:   123,
-		Status:      "returned",
-		Limit:       time.Now().Add(24 * time.Hour),
-		DeliveredAt: time.Now(),
-		ReturnedAt:  time.Now(),
-		Hash:        "hash123",
-		Weight:      10,
-		BasePrice:   1000,
-		Wrapper:     "none",
-	}
-
-	order2 := models.Order{
-		Id:          2,
-		Recipient:   456,
-		Status:      "returned",
-		Limit:       time.Now().Add(24 * time.Hour),
-		DeliveredAt: time.Now(),
-		ReturnedAt:  time.Now(),
-		Hash:        "hash456",
-		Weight:      15,
-		BasePrice:   1500,
-		Wrapper:     "none",
-	}
-
-	err = orderService.AddOrder(order1)
-	require.NoError(t, err)
-
-	err = orderService.AddOrder(order2)
-	require.NoError(t, err)
-
-	returnedOrders, err := orderService.GetReturns(0, 2)
-	assert.NoError(t, err)
-	assert.Len(t, returnedOrders, 2)
-
-	models.Normalize(&order1, &order2)
-	for i := range returnedOrders {
-		models.Normalize(&returnedOrders[i])
-	}
-
-	assert.Contains(t, returnedOrders, order1)
-	assert.Contains(t, returnedOrders, order2)
-}
-
-func TestOrderService_DeleteOrder(t *testing.T) {
-	db, err := setupDB()
-	require.NoError(t, err)
-	defer teardownDB(db)
-
-	orderStorage, err := storage.NewOrderStorage(dbConnStr)
-	require.NoError(t, err)
-	wrapperStorage, err := storage.NewWrapperStorage(dbConnStr)
-	require.NoError(t, err)
-	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
 
 	order := models.Order{
 		Id:          1,
@@ -274,41 +99,184 @@ func TestOrderService_DeleteOrder(t *testing.T) {
 		Hash:        "hash123",
 		Weight:      10,
 		BasePrice:   1000,
-		Wrapper:     "none",
+		Wrapper:     "pack",
 	}
 
-	err = orderService.AddOrder(order)
+	err = orderStorage.AddOrder(order)
 	require.NoError(t, err)
 
-	err = orderService.DeleteOrder(order.Id)
+	err = orderStorage.DeleteOrder(order.Id)
 	assert.NoError(t, err)
 
 	_, err = orderStorage.GetOrderById(order.Id)
 	assert.Error(t, err)
 }
 
-func TestOrderService_GetWrapper(t *testing.T) {
+func TestOrderStorage_GetOrderById(t *testing.T) {
 	db, err := setupDB()
 	require.NoError(t, err)
 	defer teardownDB(db)
 
 	orderStorage, err := storage.NewOrderStorage(dbConnStr)
 	require.NoError(t, err)
-	wrapperStorage, err := storage.NewWrapperStorage(dbConnStr)
-	require.NoError(t, err)
-	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
 
-	wrapper := models.Wrapper{
-		Id:        2,
-		Type:      "pack",
-		MaxWeight: sql.NullInt64{Int64: 20, Valid: true},
-		Markup:    10,
+	order := models.Order{
+		Id:          1,
+		Recipient:   123,
+		Status:      "alive",
+		Limit:       time.Now().Add(24 * time.Hour),
+		DeliveredAt: time.Now(),
+		ReturnedAt:  time.Now(),
+		Hash:        "hash123",
+		Weight:      10,
+		BasePrice:   1000,
+		Wrapper:     "pack",
 	}
 
-	_, err = db.Exec("INSERT INTO wrappers (id, type, max_weight, markup) VALUES ($1, $2, $3, $4)", wrapper.Id, wrapper.Type, wrapper.MaxWeight, wrapper.Markup)
+	err = orderStorage.AddOrder(order)
 	require.NoError(t, err)
 
-	storedWrapper, err := orderService.GetWrapper("pack")
+	storedOrder, err := orderStorage.GetOrderById(order.Id)
 	assert.NoError(t, err)
-	assert.Equal(t, wrapper, storedWrapper)
+
+	models.Normalize(&order, &storedOrder)
+
+	assert.Equal(t, order, storedOrder)
+}
+
+func TestOrderStorage_GetOrdersByRecipient(t *testing.T) {
+	db, err := setupDB()
+	require.NoError(t, err)
+	defer teardownDB(db)
+
+	orderStorage, err := storage.NewOrderStorage(dbConnStr)
+	require.NoError(t, err)
+
+	order1 := models.Order{
+		Id:          1,
+		Recipient:   123,
+		Status:      "alive",
+		Limit:       time.Now().Add(24 * time.Hour),
+		DeliveredAt: time.Now(),
+		ReturnedAt:  time.Now(),
+		Hash:        "hash123",
+		Weight:      10,
+		BasePrice:   1000,
+		Wrapper:     "pack",
+	}
+
+	order2 := models.Order{
+		Id:          2,
+		Recipient:   123,
+		Status:      "alive",
+		Limit:       time.Now().Add(24 * time.Hour),
+		DeliveredAt: time.Now(),
+		ReturnedAt:  time.Now(),
+		Hash:        "hash456",
+		Weight:      15,
+		BasePrice:   1500,
+		Wrapper:     "box",
+	}
+
+	err = orderStorage.AddOrder(order1)
+	require.NoError(t, err)
+	err = orderStorage.AddOrder(order2)
+	require.NoError(t, err)
+
+	orders, err := orderStorage.GetOrdersByRecipient(123)
+	assert.NoError(t, err)
+	assert.Len(t, orders, 2)
+
+	models.Normalize(&order1, &order2)
+	for i := range orders {
+		models.Normalize(&orders[i])
+	}
+
+	assert.Contains(t, orders, order1)
+	assert.Contains(t, orders, order2)
+}
+
+func TestOrderStorage_GetPaginatedOrdersByStatus(t *testing.T) {
+	db, err := setupDB()
+	require.NoError(t, err)
+	defer teardownDB(db)
+
+	orderStorage, err := storage.NewOrderStorage(dbConnStr)
+	require.NoError(t, err)
+
+	order1 := models.Order{
+		Id:          1,
+		Recipient:   123,
+		Status:      "alive",
+		Limit:       time.Now().Add(24 * time.Hour),
+		DeliveredAt: time.Now(),
+		ReturnedAt:  time.Now(),
+		Hash:        "hash123",
+		Weight:      10,
+		BasePrice:   1000,
+		Wrapper:     "pack",
+	}
+
+	order2 := models.Order{
+		Id:          2,
+		Recipient:   456,
+		Status:      "alive",
+		Limit:       time.Now().Add(24 * time.Hour),
+		DeliveredAt: time.Now(),
+		ReturnedAt:  time.Now(),
+		Hash:        "hash456",
+		Weight:      15,
+		BasePrice:   1500,
+		Wrapper:     "box",
+	}
+
+	err = orderStorage.AddOrder(order1)
+	require.NoError(t, err)
+	err = orderStorage.AddOrder(order2)
+	require.NoError(t, err)
+
+	orders, err := orderStorage.GetPaginatedOrdersByStatus("alive", 0, 2)
+	assert.NoError(t, err)
+	assert.Len(t, orders, 2)
+
+	models.Normalize(&order1, &order2)
+	for i := range orders {
+		models.Normalize(&orders[i])
+	}
+
+	assert.Contains(t, orders, order1)
+	assert.Contains(t, orders, order2)
+}
+
+func TestOrderStorage_UpdateHash(t *testing.T) {
+	db, err := setupDB()
+	require.NoError(t, err)
+	defer teardownDB(db)
+
+	orderStorage, err := storage.NewOrderStorage(dbConnStr)
+	require.NoError(t, err)
+
+	order := models.Order{
+		Id:          1,
+		Recipient:   123,
+		Status:      "alive",
+		Limit:       time.Now().Add(24 * time.Hour),
+		DeliveredAt: time.Now(),
+		ReturnedAt:  time.Now(),
+		Hash:        "hash123",
+		Weight:      10,
+		BasePrice:   1000,
+		Wrapper:     "pack",
+	}
+
+	err = orderStorage.AddOrder(order)
+	require.NoError(t, err)
+
+	newHash := "newhash123"
+	err = orderStorage.UpdateHash(order.Id, newHash)
+	assert.NoError(t, err)
+
+	updatedOrder, err := orderStorage.GetOrderById(order.Id)
+	assert.NoError(t, err)
+	assert.Equal(t, newHash, updatedOrder.Hash)
 }

@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	querySelectWrapperByType = `SELECT type, max_weight, markup FROM wrappers WHERE type = $1`
+	querySelectWrapperByType = `SELECT id, type, max_weight, markup FROM wrappers WHERE type = $1`
 )
 
 type PostgresWrapperStorage struct {
@@ -32,7 +32,7 @@ func (s *PostgresWrapperStorage) GetWrapperByType(givenType string) ([]models.Wr
 	var wrappers []models.Wrapper
 	for rows.Next() {
 		var wrapper models.Wrapper
-		if err := rows.Scan(&wrapper.Type, &wrapper.MaxWeight, &wrapper.Markup); err != nil {
+		if err := rows.Scan(&wrapper.Id, &wrapper.Type, &wrapper.MaxWeight, &wrapper.Markup); err != nil {
 			return nil, err
 		}
 		wrappers = append(wrappers, wrapper)

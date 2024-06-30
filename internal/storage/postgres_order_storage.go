@@ -10,9 +10,9 @@ const (
 	queryInsertOrder             = `INSERT INTO orders (id, recipient, status, time_limit, delivered_at, returned_at, hash, weight, base_cost, wrapper) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 	queryUpdateOrder             = `UPDATE orders SET recipient = $1, status = $2, time_limit = $3, delivered_at = $4, returned_at = $5, hash = $6 WHERE id = $7`
 	queryDeleteOrder             = `DELETE FROM orders WHERE id = $1`
-	querySelectOrderById         = `SELECT id, recipient, status, time_limit, delivered_at, returned_at, hash FROM orders WHERE id = $1`
-	querySelectOrdersByRecipient = `SELECT id, recipient, status, time_limit, delivered_at, returned_at, hash FROM orders WHERE recipient = $1`
-	querySelectOrdersByStatus    = `SELECT id, recipient, status, time_limit, delivered_at, returned_at, hash FROM orders WHERE status = $1 ORDER BY returned_at`
+	querySelectOrderById         = `SELECT id, recipient, status, time_limit, delivered_at, returned_at, hash, weight, base_cost, wrapper FROM orders WHERE id = $1`
+	querySelectOrdersByRecipient = `SELECT id, recipient, status, time_limit, delivered_at, returned_at, hash, weight, base_cost, wrapper FROM orders WHERE recipient = $1`
+	querySelectOrdersByStatus    = `SELECT id, recipient, status, time_limit, delivered_at, returned_at, hash, weight, base_cost, wrapper FROM orders WHERE status = $1 ORDER BY returned_at`
 	queryUpdateHash              = `UPDATE orders SET hash = $1 WHERE id = $2`
 )
 
@@ -47,7 +47,7 @@ func (s *PostgresOrderStorage) GetOrderById(id int) (models.Order, error) {
 	row := s.db.QueryRow(querySelectOrderById, id)
 
 	var ord models.Order
-	err := row.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Limit, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash)
+	err := row.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Limit, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash, &ord.Weight, &ord.BasePrice, &ord.Wrapper)
 	if err != nil {
 		return models.Order{}, err
 	}
@@ -64,7 +64,7 @@ func (s *PostgresOrderStorage) GetOrdersByRecipient(recipient int) ([]models.Ord
 	var orders []models.Order
 	for rows.Next() {
 		var ord models.Order
-		if err := rows.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Limit, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash); err != nil {
+		if err := rows.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Limit, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash, &ord.Weight, &ord.BasePrice, &ord.Wrapper); err != nil {
 			return nil, err
 		}
 		orders = append(orders, ord)
@@ -97,7 +97,7 @@ func (s *PostgresOrderStorage) GetPaginatedOrdersByStatus(status string, offset,
 	var orders []models.Order
 	for rows.Next() {
 		var ord models.Order
-		if err := rows.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Limit, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash); err != nil {
+		if err := rows.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Limit, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash, &ord.Weight, &ord.BasePrice, &ord.Wrapper); err != nil {
 			return nil, err
 		}
 		orders = append(orders, ord)

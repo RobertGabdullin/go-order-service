@@ -16,20 +16,20 @@ func setupDB() (*sql.DB, error) {
 
 	schema := `
 	CREATE TABLE IF NOT EXISTS orders (
-		id PRIMARY KEY,
+		id INT PRIMARY KEY,
 		recipient INT,
 		status TEXT,
-		time_limit TIMESTAMP,
-		delivered_at TIMESTAMP,
-		returned_at TIMESTAMP,
+		time_limit TIMESTAMPTZ,
+		delivered_at TIMESTAMPTZ,
+		returned_at TIMESTAMPTZ,
 		hash TEXT,
 		weight INT,
-		base_price INT,
+		base_cost INT,
 		wrapper TEXT
 	);
 
 	CREATE TABLE IF NOT EXISTS wrappers (
-		id SERIAL PRIMARY KEY,
+		id INT PRIMARY KEY,
 		type TEXT,
 		max_weight INT,
 		markup INT
