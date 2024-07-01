@@ -23,18 +23,20 @@ migrate-status:
 	goose -dir $(MIGRATION_DIR) postgres $(DB_CONNECTION_STRING) status
 
 test-unit:
-	go test -tags=unit .\tests\unit
+	go test -tags=unit ./tests/unit
 
 test-integration:
-	go test -tags=integration .\tests\integration
+	go test -tags=integration ./tests/integration
 
 test-db:
 	docker-compose -f docker-compose.test.yml up -d
 
 clean-test-db:
-	psql -U postgres -c "DROP DATABASE IF EXISTS orders_test; CREATE DATABASE orders_test;"
+	docker-compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS orders_test;"
+	docker-compose exec -T postgres psql -U postgres -c "CREATE DATABASE orders_test;"
 
-test: clean-test-db test-unit test-integration
+test: test-db clean-test-db test-unit test-integration
+
 
 
 
