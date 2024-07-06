@@ -5,7 +5,7 @@ import "time"
 type Order struct {
 	Id          int
 	Recipient   int
-	Limit       time.Time
+	Expire      time.Time
 	DeliveredAt time.Time
 	ReturnedAt  time.Time
 	Status      string
@@ -19,7 +19,7 @@ func NewOrder(id, recipient int, limit time.Time, status, hash string, price, we
 	return Order{
 		Id:          id,
 		Recipient:   recipient,
-		Limit:       limit,
+		Expire:      limit,
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Status:      status,
@@ -27,13 +27,5 @@ func NewOrder(id, recipient int, limit time.Time, status, hash string, price, we
 		Weight:      weight,
 		BasePrice:   price,
 		Wrapper:     wrapper,
-	}
-}
-
-func Normalize(ords ...*Order) {
-	for i := range ords {
-		ords[i].Limit = ords[i].Limit.UTC().Truncate(time.Second)
-		ords[i].DeliveredAt = ords[i].DeliveredAt.UTC().Truncate(time.Second)
-		ords[i].ReturnedAt = ords[i].ReturnedAt.UTC().Truncate(time.Second)
 	}
 }

@@ -4,9 +4,9 @@ CREATE TABLE orders (
     id INT PRIMARY KEY,
     recipient INT NOT NULL,
     status TEXT NOT NULL,
-    time_limit TIMESTAMP,
-    delivered_at TIMESTAMP,
-    returned_at TIMESTAMP,
+    time_limit TIMESTAMPTZ,
+    delivered_at TIMESTAMPTZ,
+    returned_at TIMESTAMPTZ,
     hash TEXT
 );
 -- +goose StatementEnd

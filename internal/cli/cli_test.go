@@ -1,12 +1,12 @@
 //go:build unit
 
-package unit
+package cli
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cli"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/tests"
 )
 
 type mockParser struct{}
@@ -23,9 +23,10 @@ func (m *mockParser) Parse(line string) (string, map[string]string, error) {
 }
 
 func TestCLI_Find(t *testing.T) {
-	service := &mockStorageService{}
+	t.Parallel()
+	service := &tests.MockStorageService{}
 	parser := &mockParser{}
-	cli := cli.NewCLI(service, parser)
+	cli := NewCLI(service, parser)
 
 	cmd, err := cli.Find("acceptOrd")
 	assert.NoError(t, err)

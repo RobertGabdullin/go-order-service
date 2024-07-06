@@ -52,7 +52,7 @@ func (cur returnOrders) Execute(mu *sync.Mutex) error {
 		return errors.New("order is not at storage")
 	}
 
-	if ords[0].Limit.After(time.Now()) {
+	if ords[0].Expire.After(time.Now()) {
 		return errors.New("order should be out of storage limit")
 	}
 

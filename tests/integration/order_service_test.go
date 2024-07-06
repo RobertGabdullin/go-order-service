@@ -28,9 +28,9 @@ func TestOrderService_AddOrder(t *testing.T) {
 
 	order := models.Order{
 		Id:          1,
-		Recipient:   123,
+		Recipient:   1,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash123",
@@ -45,9 +45,12 @@ func TestOrderService_AddOrder(t *testing.T) {
 	storedOrder, err := orderStorage.GetOrderById(order.Id)
 	assert.NoError(t, err)
 
-	models.Normalize(&order, &storedOrder)
+	Normalize(&order, &storedOrder)
 
 	assert.Equal(t, order, storedOrder)
+
+	orderService.DeleteOrder(1)
+
 }
 
 func TestOrderService_ChangeStatus(t *testing.T) {
@@ -62,10 +65,10 @@ func TestOrderService_ChangeStatus(t *testing.T) {
 	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
 
 	order := models.Order{
-		Id:          1,
-		Recipient:   123,
+		Id:          2,
+		Recipient:   2,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash123",
@@ -85,6 +88,8 @@ func TestOrderService_ChangeStatus(t *testing.T) {
 	assert.Equal(t, "delivered", updatedOrder.Status)
 	assert.NotZero(t, updatedOrder.DeliveredAt)
 	assert.Equal(t, "newhash123", updatedOrder.Hash)
+
+	orderService.DeleteOrder(2)
 }
 
 func TestOrderService_FindOrders(t *testing.T) {
@@ -99,10 +104,10 @@ func TestOrderService_FindOrders(t *testing.T) {
 	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
 
 	order1 := models.Order{
-		Id:          1,
-		Recipient:   123,
+		Id:          3,
+		Recipient:   3,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Time{},
 		ReturnedAt:  time.Time{},
 		Hash:        "hash123",
@@ -112,10 +117,10 @@ func TestOrderService_FindOrders(t *testing.T) {
 	}
 
 	order2 := models.Order{
-		Id:          2,
-		Recipient:   456,
+		Id:          4,
+		Recipient:   4,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash456",
@@ -130,17 +135,17 @@ func TestOrderService_FindOrders(t *testing.T) {
 	err = orderService.AddOrder(order2)
 	require.NoError(t, err)
 
-	orders, err := orderService.FindOrders([]int{1, 2})
-
-	models.Normalize(&order1, &order2)
-	for i := range orders {
-		models.Normalize(&orders[i])
-	}
-
+	orders, err := orderService.FindOrders([]int{order1.Id, order2.Id})
 	assert.NoError(t, err)
-	assert.Len(t, orders, 2)
-	assert.Contains(t, orders, order1)
-	assert.Contains(t, orders, order2)
+
+	Normalize(&order1, &order2)
+	for i := range orders {
+		Normalize(&orders[i])
+	}
+	assert.ElementsMatch(t, orders, []models.Order{order1, order2})
+
+	orderService.DeleteOrder(3)
+	orderService.DeleteOrder(4)
 }
 
 func TestOrderService_ListOrders(t *testing.T) {
@@ -155,10 +160,10 @@ func TestOrderService_ListOrders(t *testing.T) {
 	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
 
 	order1 := models.Order{
-		Id:          1,
-		Recipient:   123,
+		Id:          5,
+		Recipient:   5,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash123",
@@ -168,10 +173,10 @@ func TestOrderService_ListOrders(t *testing.T) {
 	}
 
 	order2 := models.Order{
-		Id:          2,
-		Recipient:   123,
+		Id:          6,
+		Recipient:   5,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash456",
@@ -186,17 +191,17 @@ func TestOrderService_ListOrders(t *testing.T) {
 	err = orderService.AddOrder(order2)
 	require.NoError(t, err)
 
-	orders, err := orderService.ListOrders(123)
+	orders, err := orderService.ListOrders(5)
 	assert.NoError(t, err)
-	assert.Len(t, orders, 2)
 
-	models.Normalize(&order1, &order2)
+	Normalize(&order1, &order2)
 	for i := range orders {
-		models.Normalize(&orders[i])
+		Normalize(&orders[i])
 	}
+	assert.ElementsMatch(t, orders, []models.Order{order1, order2})
 
-	assert.Contains(t, orders, order1)
-	assert.Contains(t, orders, order2)
+	orderService.DeleteOrder(5)
+	orderService.DeleteOrder(6)
 }
 
 func TestOrderService_GetReturns(t *testing.T) {
@@ -211,10 +216,10 @@ func TestOrderService_GetReturns(t *testing.T) {
 	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
 
 	order1 := models.Order{
-		Id:          1,
-		Recipient:   123,
+		Id:          7,
+		Recipient:   7,
 		Status:      "returned",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash123",
@@ -224,10 +229,10 @@ func TestOrderService_GetReturns(t *testing.T) {
 	}
 
 	order2 := models.Order{
-		Id:          2,
-		Recipient:   456,
+		Id:          8,
+		Recipient:   8,
 		Status:      "returned",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash456",
@@ -242,17 +247,17 @@ func TestOrderService_GetReturns(t *testing.T) {
 	err = orderService.AddOrder(order2)
 	require.NoError(t, err)
 
-	returnedOrders, err := orderService.GetReturns(0, 2)
+	orders, err := orderService.GetReturns(0, 2)
 	assert.NoError(t, err)
-	assert.Len(t, returnedOrders, 2)
 
-	models.Normalize(&order1, &order2)
-	for i := range returnedOrders {
-		models.Normalize(&returnedOrders[i])
+	Normalize(&order1, &order2)
+	for i := range orders {
+		Normalize(&orders[i])
 	}
+	assert.ElementsMatch(t, orders, []models.Order{order1, order2})
 
-	assert.Contains(t, returnedOrders, order1)
-	assert.Contains(t, returnedOrders, order2)
+	orderService.DeleteOrder(7)
+	orderService.DeleteOrder(8)
 }
 
 func TestOrderService_DeleteOrder(t *testing.T) {
@@ -270,7 +275,7 @@ func TestOrderService_DeleteOrder(t *testing.T) {
 		Id:          1,
 		Recipient:   123,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash123",
@@ -301,14 +306,11 @@ func TestOrderService_GetWrapper(t *testing.T) {
 	orderService := service.NewPostgresService(orderStorage, wrapperStorage)
 
 	wrapper := models.Wrapper{
-		Id:        2,
+		Id:        1,
 		Type:      "pack",
-		MaxWeight: sql.NullInt64{Int64: 20, Valid: true},
-		Markup:    10,
+		MaxWeight: sql.NullInt64{Int64: 10, Valid: true},
+		Markup:    5,
 	}
-
-	_, err = db.Exec("INSERT INTO wrappers (id, type, max_weight, markup) VALUES ($1, $2, $3, $4)", wrapper.Id, wrapper.Type, wrapper.MaxWeight, wrapper.Markup)
-	require.NoError(t, err)
 
 	storedWrapper, err := orderService.GetWrapper("pack")
 	assert.NoError(t, err)

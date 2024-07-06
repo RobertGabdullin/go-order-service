@@ -52,7 +52,7 @@ func (cur deliverOrder) Execute(mu *sync.Mutex) error {
 		if elem.Status != "alive" {
 			return errors.New("some orders are not available")
 		}
-		if elem.Limit.Before(time.Now()) {
+		if elem.Expire.Before(time.Now()) {
 			return errors.New("some orders is out of storage limit date")
 		}
 		tempErr := cur.service.ChangeStatus(elem.Id, "delivered", hash)
@@ -74,7 +74,7 @@ func (deliverOrder) Description() string {
 func convertToInt(in string) ([]int, error) {
 	result := make([]int, 0)
 	if len(in) < 2 || in[0] != '[' || in[len(in)-1] != ']' {
-		return nil, errors.New("invalid flag value")
+		return nil, errors.New("invalid number of flags")
 	}
 
 	parts := strings.Split(in[1:len(in)-1], ",")

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
@@ -45,8 +44,8 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 	teardownDB(suite.DB)
 }
 
-func (suite *ServiceTestSuite) SetupTest() {
-	suite.DB.Exec("TRUNCATE TABLE orders, wrappers RESTART IDENTITY;")
+func (suite *ServiceTestSuite) TearDownTest() {
+	suite.DB.Exec("TRUNCATE TABLE orders RESTART IDENTITY;")
 }
 
 func (suite *ServiceTestSuite) TestAddOrder() {
@@ -54,7 +53,7 @@ func (suite *ServiceTestSuite) TestAddOrder() {
 		Id:          1,
 		Recipient:   123,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash123",
@@ -64,13 +63,13 @@ func (suite *ServiceTestSuite) TestAddOrder() {
 	}
 
 	err := suite.OrderService.AddOrder(order)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 
 	storedOrder, err := suite.OrderStorage.GetOrderById(order.Id)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 
-	models.Normalize(&storedOrder, &order)
-	assert.Equal(suite.T(), order, storedOrder)
+	Normalize(&storedOrder, &order)
+	suite.Equal(order, storedOrder)
 }
 
 func (suite *ServiceTestSuite) TestChangeStatus() {
@@ -78,7 +77,7 @@ func (suite *ServiceTestSuite) TestChangeStatus() {
 		Id:          1,
 		Recipient:   123,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash123",
@@ -88,16 +87,16 @@ func (suite *ServiceTestSuite) TestChangeStatus() {
 	}
 
 	err := suite.OrderService.AddOrder(order)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 
 	err = suite.OrderService.ChangeStatus(order.Id, "delivered", "newhash123")
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 
 	updatedOrder, err := suite.OrderStorage.GetOrderById(order.Id)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), "delivered", updatedOrder.Status)
-	assert.NotZero(suite.T(), updatedOrder.DeliveredAt)
-	assert.Equal(suite.T(), "newhash123", updatedOrder.Hash)
+	suite.NoError(err)
+	suite.Equal("delivered", updatedOrder.Status)
+	suite.NotZero(updatedOrder.DeliveredAt)
+	suite.Equal("newhash123", updatedOrder.Hash)
 }
 
 func (suite *ServiceTestSuite) TestFindOrders() {
@@ -105,7 +104,7 @@ func (suite *ServiceTestSuite) TestFindOrders() {
 		Id:          1,
 		Recipient:   123,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Time{},
 		ReturnedAt:  time.Time{},
 		Hash:        "hash123",
@@ -118,7 +117,7 @@ func (suite *ServiceTestSuite) TestFindOrders() {
 		Id:          2,
 		Recipient:   456,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash456",
@@ -128,21 +127,24 @@ func (suite *ServiceTestSuite) TestFindOrders() {
 	}
 
 	err := suite.OrderService.AddOrder(order1)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 	err = suite.OrderService.AddOrder(order2)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 
 	orders, err := suite.OrderService.FindOrders([]int{1, 2})
-	assert.NoError(suite.T(), err)
-	assert.Len(suite.T(), orders, 2)
+	suite.NoError(err)
 
-	models.Normalize(&order1, &order2)
+	Normalize(&order1, &order2)
 	for i := range orders {
-		models.Normalize(&orders[i])
+		Normalize(&orders[i])
 	}
 
-	assert.Contains(suite.T(), orders, order1)
-	assert.Contains(suite.T(), orders, order2)
+	suite.ElementsMatch(orders, []models.Order{order1, order2})
+
+	orders, err = suite.OrderService.FindOrders([]int{3, 4})
+	suite.Nil(orders)
+	suite.ErrorContains(err, "no rows in result set")
+
 }
 
 func (suite *ServiceTestSuite) TestListOrders() {
@@ -150,7 +152,7 @@ func (suite *ServiceTestSuite) TestListOrders() {
 		Id:          1,
 		Recipient:   123,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash123",
@@ -163,7 +165,7 @@ func (suite *ServiceTestSuite) TestListOrders() {
 		Id:          2,
 		Recipient:   123,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash456",
@@ -173,21 +175,24 @@ func (suite *ServiceTestSuite) TestListOrders() {
 	}
 
 	err := suite.OrderService.AddOrder(order1)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 	err = suite.OrderService.AddOrder(order2)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 
 	orders, err := suite.OrderService.ListOrders(123)
-	assert.NoError(suite.T(), err)
-	assert.Len(suite.T(), orders, 2)
+	suite.NoError(err)
 
-	models.Normalize(&order1, &order2)
+	Normalize(&order1, &order2)
 	for i := range orders {
-		models.Normalize(&orders[i])
+		Normalize(&orders[i])
 	}
 
-	assert.Contains(suite.T(), orders, order1)
-	assert.Contains(suite.T(), orders, order2)
+	suite.ElementsMatch(orders, []models.Order{order1, order2})
+
+	orders, err = suite.OrderService.ListOrders(234)
+	suite.NoError(err)
+	suite.ElementsMatch(orders, []models.Order{})
+
 }
 
 func (suite *ServiceTestSuite) TestGetReturns() {
@@ -195,9 +200,9 @@ func (suite *ServiceTestSuite) TestGetReturns() {
 		Id:          1,
 		Recipient:   123,
 		Status:      "returned",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
-		ReturnedAt:  time.Now(),
+		ReturnedAt:  time.Now().Add(12 * time.Hour),
 		Hash:        "hash123",
 		Weight:      10,
 		BasePrice:   1000,
@@ -208,7 +213,7 @@ func (suite *ServiceTestSuite) TestGetReturns() {
 		Id:          2,
 		Recipient:   456,
 		Status:      "returned",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash456",
@@ -218,21 +223,26 @@ func (suite *ServiceTestSuite) TestGetReturns() {
 	}
 
 	err := suite.OrderService.AddOrder(order1)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 	err = suite.OrderService.AddOrder(order2)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 
 	returnedOrders, err := suite.OrderService.GetReturns(0, 2)
-	assert.NoError(suite.T(), err)
-	assert.Len(suite.T(), returnedOrders, 2)
+	suite.NoError(err)
 
-	models.Normalize(&order1, &order2)
+	Normalize(&order1, &order2)
 	for i := range returnedOrders {
-		models.Normalize(&returnedOrders[i])
+		Normalize(&returnedOrders[i])
 	}
+	suite.ElementsMatch(returnedOrders, []models.Order{order1, order2})
 
-	assert.Contains(suite.T(), returnedOrders, order1)
-	assert.Contains(suite.T(), returnedOrders, order2)
+	returnedOrders, err = suite.OrderService.GetReturns(0, 1)
+	suite.NoError(err)
+	for i := range returnedOrders {
+		Normalize(&returnedOrders[i])
+	}
+	suite.ElementsMatch(returnedOrders, []models.Order{order2})
+
 }
 
 func (suite *ServiceTestSuite) TestDeleteOrder() {
@@ -240,7 +250,7 @@ func (suite *ServiceTestSuite) TestDeleteOrder() {
 		Id:          1,
 		Recipient:   123,
 		Status:      "alive",
-		Limit:       time.Now().Add(24 * time.Hour),
+		Expire:      time.Now().Add(24 * time.Hour),
 		DeliveredAt: time.Now(),
 		ReturnedAt:  time.Now(),
 		Hash:        "hash123",
@@ -250,29 +260,26 @@ func (suite *ServiceTestSuite) TestDeleteOrder() {
 	}
 
 	err := suite.OrderService.AddOrder(order)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 
 	err = suite.OrderService.DeleteOrder(order.Id)
-	assert.NoError(suite.T(), err)
+	suite.NoError(err)
 
 	_, err = suite.OrderStorage.GetOrderById(order.Id)
-	assert.Error(suite.T(), err)
+	suite.ErrorContains(err, "no rows in result set")
 }
 
 func (suite *ServiceTestSuite) TestGetWrapper() {
 	wrapper := models.Wrapper{
-		Id:        2,
+		Id:        1,
 		Type:      "pack",
-		MaxWeight: sql.NullInt64{Int64: 20, Valid: true},
-		Markup:    10,
+		MaxWeight: sql.NullInt64{Int64: 10, Valid: true},
+		Markup:    5,
 	}
 
-	_, err := suite.DB.Exec("INSERT INTO wrappers (id, type, max_weight, markup) VALUES ($1, $2, $3, $4)", wrapper.Id, wrapper.Type, wrapper.MaxWeight, wrapper.Markup)
-	assert.NoError(suite.T(), err)
-
 	storedWrapper, err := suite.OrderService.GetWrapper("pack")
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), wrapper, storedWrapper)
+	suite.NoError(err)
+	suite.Equal(wrapper, storedWrapper)
 }
 
 func TestServiceTestSuite(t *testing.T) {

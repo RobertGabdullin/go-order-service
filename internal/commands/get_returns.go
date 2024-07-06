@@ -38,7 +38,7 @@ func (cur getReturns) Execute(mu *sync.Mutex) error {
 	}
 
 	for i := range ords {
-		fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s acceptedAt = %s\n", i+1, ords[i].Id, ords[i].Recipient, ords[i].Limit, ords[i].ReturnedAt)
+		fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s acceptedAt = %s\n", i+1, ords[i].Id, ords[i].Recipient, ords[i].Expire, ords[i].ReturnedAt)
 	}
 
 	return nil

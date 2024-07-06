@@ -29,12 +29,12 @@ func NewOrderStorage(connStr string) (*PostgresOrderStorage, error) {
 }
 
 func (s *PostgresOrderStorage) AddOrder(ord models.Order) error {
-	_, err := s.db.Exec(queryInsertOrder, ord.Id, ord.Recipient, ord.Status, ord.Limit, ord.DeliveredAt, ord.ReturnedAt, ord.Hash, ord.Weight, ord.BasePrice, ord.Wrapper)
+	_, err := s.db.Exec(queryInsertOrder, ord.Id, ord.Recipient, ord.Status, ord.Expire, ord.DeliveredAt, ord.ReturnedAt, ord.Hash, ord.Weight, ord.BasePrice, ord.Wrapper)
 	return err
 }
 
 func (s *PostgresOrderStorage) UpdateOrder(ord models.Order) error {
-	_, err := s.db.Exec(queryUpdateOrder, ord.Recipient, ord.Status, ord.Limit, ord.DeliveredAt, ord.ReturnedAt, ord.Hash, ord.Id)
+	_, err := s.db.Exec(queryUpdateOrder, ord.Recipient, ord.Status, ord.Expire, ord.DeliveredAt, ord.ReturnedAt, ord.Hash, ord.Id)
 	return err
 }
 
@@ -47,7 +47,7 @@ func (s *PostgresOrderStorage) GetOrderById(id int) (models.Order, error) {
 	row := s.db.QueryRow(querySelectOrderById, id)
 
 	var ord models.Order
-	err := row.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Limit, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash, &ord.Weight, &ord.BasePrice, &ord.Wrapper)
+	err := row.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Expire, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash, &ord.Weight, &ord.BasePrice, &ord.Wrapper)
 	if err != nil {
 		return models.Order{}, err
 	}
@@ -64,7 +64,7 @@ func (s *PostgresOrderStorage) GetOrdersByRecipient(recipient int) ([]models.Ord
 	var orders []models.Order
 	for rows.Next() {
 		var ord models.Order
-		if err := rows.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Limit, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash, &ord.Weight, &ord.BasePrice, &ord.Wrapper); err != nil {
+		if err := rows.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Expire, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash, &ord.Weight, &ord.BasePrice, &ord.Wrapper); err != nil {
 			return nil, err
 		}
 		orders = append(orders, ord)
@@ -97,7 +97,7 @@ func (s *PostgresOrderStorage) GetPaginatedOrdersByStatus(status string, offset,
 	var orders []models.Order
 	for rows.Next() {
 		var ord models.Order
-		if err := rows.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Limit, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash, &ord.Weight, &ord.BasePrice, &ord.Wrapper); err != nil {
+		if err := rows.Scan(&ord.Id, &ord.Recipient, &ord.Status, &ord.Expire, &ord.DeliveredAt, &ord.ReturnedAt, &ord.Hash, &ord.Weight, &ord.BasePrice, &ord.Wrapper); err != nil {
 			return nil, err
 		}
 		orders = append(orders, ord)

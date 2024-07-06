@@ -47,7 +47,7 @@ func (cur getOrders) Execute(mu *sync.Mutex) error {
 
 	for i := len(ords) - 1; i >= 0 && (cur.count == -1 || cur.count >= cnt); i-- {
 		if ords[i].Status == "alive" {
-			fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s\n", cnt, ords[i].Id, ords[i].Recipient, ords[i].Limit)
+			fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s\n", cnt, ords[i].Id, ords[i].Recipient, ords[i].Expire)
 			cnt++
 		}
 	}

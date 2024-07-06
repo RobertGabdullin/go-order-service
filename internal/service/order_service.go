@@ -88,7 +88,7 @@ func (s *OrderService) GetWrapper(givenType string) (models.Wrapper, error) {
 		return models.Wrapper{}, err
 	}
 	if len(wrappers) == 0 {
-		return models.Wrapper{}, errors.New("undefined type")
+		return models.Wrapper{}, errors.New("wrapper not found")
 	}
 	return wrappers[0], nil
 }
