@@ -9,26 +9,65 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cli"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/kafka"
+	"gopkg.in/yaml.v2"
 )
 
-func main() {
-	err := godotenv.Load()
+type Config struct {
+	Database struct {
+		URL string `yaml:"url"`
+	} `yaml:"database"`
+	Kafka struct {
+		Brokers []string `yaml:"brokers"`
+		Topic   string   `yaml:"topic"`
+		GroupID string   `yaml:"group_id"`
+	} `yaml:"kafka"`
+	App struct {
+		OutputMode string `yaml:"output_mode"`
+	} `yaml:"app"`
+}
+
+func loadConfig() (*Config, error) {
+	f, err := os.Open("config.yaml")
 	if err != nil {
-		fmt.Println("Error loading .env file")
+		return nil, err
+	}
+	defer f.Close()
+
+	var cfg Config
+	decoder := yaml.NewDecoder(f)
+	err = decoder.Decode(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
+}
+
+func main() {
+	config, err := loadConfig()
+	if err != nil {
+		fmt.Println("Error loading config file:", err)
 		return
 	}
 
-	reader := bufio.NewReader(os.Stdin)
+	if config.App.OutputMode == "kafka" {
+		if err := kafka.InitKafka(config.Kafka.Brokers); err != nil {
+			fmt.Println("Error initializing Kafka:", err)
+			return
+		}
+		defer kafka.CloseProducer()
+		go kafka.StartConsumer(config.Kafka.Brokers, config.Kafka.Topic)
+	}
 
-	connUrl := os.Getenv("DATABASE_URL")
+	connUrl := config.Database.URL
 	if connUrl == "" {
-		fmt.Println("DATABASE_URL environment variable is not set")
+		fmt.Println("Database URL is not set in the config file")
 		return
 	}
 	postgresStorage, err := storage.NewOrderStorage(connUrl)
@@ -45,7 +84,7 @@ func main() {
 	orderService := service.NewPostgresService(postgresStorage, wrapperStorage)
 
 	parser := parser.ArgsParser{}
-	cmd := cli.NewCLI(orderService, parser)
+	cmd := cli.NewCLI(orderService, parser, config.App.OutputMode, config.Kafka.Topic)
 
 	commandChan := make(chan string, 10)
 	var wg sync.WaitGroup
@@ -68,6 +107,7 @@ func main() {
 		close(commandChan)
 	}()
 
+	reader := bufio.NewReader(os.Stdin)
 	go func() {
 		for {
 			fmt.Print("> ")

@@ -1,0 +1,11 @@
+database:
+  url: "postgres://postgres:postgres@localhost:5432/orders?sslmode=disable"
+
+kafka:
+  brokers:
+    - "127.0.0.1:9092"
+  topic: "api_events"
+  group_id: "console-consumer-group"
+
+app:
+  output_mode: "kafka" # "kafka" или "direct"
