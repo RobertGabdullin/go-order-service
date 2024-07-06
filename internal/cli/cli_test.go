@@ -26,7 +26,7 @@ func TestCLI_Find(t *testing.T) {
 	t.Parallel()
 	service := &tests.MockStorageService{}
 	parser := &mockParser{}
-	cli := NewCLI(service, parser)
+	cli := NewCLI(service, parser, "someMode", "someTopic")
 
 	cmd, err := cli.Find("acceptOrd")
 	assert.NoError(t, err)

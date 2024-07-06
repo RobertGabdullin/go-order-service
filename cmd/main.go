@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -45,7 +46,9 @@ func loadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	if cfg.App.OutputMode != "direct" && cfg.App.OutputMode != "kafka" {
+		return nil, errors.New("Unknown output mode")
+	}
 	return &cfg, nil
 }
 
