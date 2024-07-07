@@ -12,5 +12,25 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
 
+  zookeeper_test:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2182
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2182:2181"
+
+  kafka_test:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper_test
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper_test:2182
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
 volumes:
   db_data:
