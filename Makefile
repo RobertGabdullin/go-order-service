@@ -26,13 +26,13 @@ test-unit:
 	go test -tags=unit ./...
 
 test-integration:
-	go test -tags=integration ./tests/integration
+	go test -tags=integration ./tests/...
 
 test-db:
 	docker-compose -f docker-compose.test.yml up -d
 
 test-migrate-up:
-	goose -dir $(MIGRATION_DIR) postgres $(TEST_DB_CONNECTION_STRING)) up
+	goose -dir $(MIGRATION_DIR) postgres $(TEST_DB_CONNECTION_STRING) up
 
 clean-test-db:
 	docker-compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS orders_test;"
