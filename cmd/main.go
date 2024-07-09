@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -12,48 +11,15 @@ import (
 
 	_ "github.com/lib/pq"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cli"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/config"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/kafka"
-	"gopkg.in/yaml.v2"
 )
 
-type Config struct {
-	Database struct {
-		URL string `yaml:"url"`
-	} `yaml:"database"`
-	Kafka struct {
-		Brokers []string `yaml:"brokers"`
-		Topic   string   `yaml:"topic"`
-		GroupID string   `yaml:"group_id"`
-	} `yaml:"kafka"`
-	App struct {
-		OutputMode string `yaml:"output_mode"`
-	} `yaml:"app"`
-}
-
-func loadConfig() (*Config, error) {
-	f, err := os.Open("config.yaml")
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	var cfg Config
-	decoder := yaml.NewDecoder(f)
-	err = decoder.Decode(&cfg)
-	if err != nil {
-		return nil, err
-	}
-	if cfg.App.OutputMode != "direct" && cfg.App.OutputMode != "kafka" {
-		return nil, errors.New("Unknown output mode")
-	}
-	return &cfg, nil
-}
-
 func main() {
-	config, err := loadConfig()
+	config, err := config.LoadConfig()
 	if err != nil {
 		fmt.Println("Error loading config file:", err)
 		return
