@@ -1,8 +1,9 @@
 MIGRATION_DIR=./migrations
-
 DB_CONNECTION_STRING=postgres://postgres:postgres@localhost:5432/orders?sslmode=disable
-
 TEST_DB_CONNECTION_STRING=postgres://postgres:postgres@localhost:5433/orders_test?sslmode=disable
+
+PROTO_SRC_DIR := ./proto
+PROTO_OUT_DIR := ./pb
 
 install-goose:
 	go get -u github.com/pressly/goose/cmd/goose
@@ -39,3 +40,7 @@ clean-test-db:
 	docker-compose exec -T postgres psql -U postgres -c "CREATE DATABASE orders_test;"
 
 test: test-db clean-test-db test-migrate-up test-unit test-integration
+
+proto:
+	protoc --proto_path=$(PROTO_SRC_DIR) --go_out=$(PROTO_OUT_DIR) --go-grpc_out=$(PROTO_OUT_DIR) $(PROTO_SRC_DIR)/*.proto
+
