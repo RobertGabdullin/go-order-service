@@ -7,6 +7,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	KafkaOutputMode  = "kafka"
+	DirectOutputMode = "console"
+)
+
 type Config struct {
 	Database struct {
 		URL string `yaml:"url"`
@@ -19,6 +24,13 @@ type Config struct {
 	App struct {
 		OutputMode string `yaml:"output_mode"`
 	} `yaml:"app"`
+}
+
+func validate(cfg *Config) error {
+	if cfg.App.OutputMode != "direct" && cfg.App.OutputMode != "kafka" {
+		return errors.New("unknown output mode")
+	}
+	return nil
 }
 
 func LoadConfig() (*Config, error) {
@@ -34,8 +46,9 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cfg.App.OutputMode != "direct" && cfg.App.OutputMode != "kafka" {
-		return nil, errors.New("Unknown output mode")
+
+	if err = validate(&cfg); err != nil {
+		return nil, err
 	}
 	return &cfg, nil
 }

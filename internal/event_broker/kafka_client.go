@@ -1,4 +1,4 @@
-package kafka
+package event_broker
 
 import (
 	"fmt"
@@ -7,39 +7,40 @@ import (
 	"github.com/IBM/sarama"
 )
 
-var (
+type KafkaClient struct {
 	producer sarama.SyncProducer
-)
-
-func InitKafka(brokers []string) error {
-	config := sarama.NewConfig()
-	config.Producer.RequiredAcks = sarama.WaitForAll
-	config.Producer.Retry.Max = 5
-	config.Producer.Return.Successes = true
-
-	var err error
-	producer, err = sarama.NewSyncProducer(brokers, config)
-	if err != nil {
-		return fmt.Errorf("failed to create Kafka producer: %w", err)
-	}
-
-	return nil
 }
 
-func ProduceEvent(topic, message string) error {
+func NewKafkaClient(brokers []string, config *sarama.Config) (*KafkaClient, error) {
+	if config == nil {
+		config = sarama.NewConfig()
+		config.Producer.RequiredAcks = sarama.WaitForAll
+		config.Producer.Retry.Max = 5
+		config.Producer.Return.Successes = true
+	}
+
+	producer, err := sarama.NewSyncProducer(brokers, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kafka producer: %w", err)
+	}
+
+	return &KafkaClient{producer: producer}, nil
+}
+
+func (kc *KafkaClient) ProduceEvent(topic, message string) error {
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.StringEncoder(message),
 	}
-	_, _, err := producer.SendMessage(msg)
+	_, _, err := kc.producer.SendMessage(msg)
 	if err != nil {
 		return fmt.Errorf("failed to send message to Kafka: %w", err)
 	}
 	return nil
 }
 
-func CloseProducer() {
-	if err := producer.Close(); err != nil {
+func (kc *KafkaClient) CloseProducer() {
+	if err := kc.producer.Close(); err != nil {
 		log.Printf("failed to close Kafka producer: %v", err)
 	}
 }

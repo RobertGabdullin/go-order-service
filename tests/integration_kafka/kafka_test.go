@@ -8,27 +8,29 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/stretchr/testify/suite"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/kafka"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/event_broker"
 )
 
 type KafkaIntegrationSuite struct {
 	suite.Suite
+	client *event_broker.KafkaClient
 }
 
 func (s *KafkaIntegrationSuite) SetupSuite() {
-	err := kafka.InitKafka([]string{"127.0.0.1:9093"})
+	client, err := event_broker.NewKafkaClient([]string{"127.0.0.1:9093"}, nil)
 	s.Require().NoError(err)
+	s.client = client
 }
 
 func (s *KafkaIntegrationSuite) TearDownSuite() {
-	kafka.CloseProducer()
+	s.client.CloseProducer()
 }
 
 func (s *KafkaIntegrationSuite) TestProduceAndConsume() {
 	topic := "integration_test_topic"
 	message := "integration_test_message"
 
-	err := kafka.ProduceEvent(topic, message)
+	err := s.client.ProduceEvent(topic, message)
 	s.NoError(err)
 
 	config := sarama.NewConfig()

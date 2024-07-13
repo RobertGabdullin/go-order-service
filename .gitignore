@@ -2,3 +2,4 @@ orders.json
 .idea/
 .env
 .vscode/
+config.yaml

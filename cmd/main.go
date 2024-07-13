@@ -12,26 +12,29 @@ import (
 	_ "github.com/lib/pq"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cli"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/config"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/event_broker"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/logger"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/kafka"
 )
 
 func main() {
 	config, err := config.LoadConfig()
 	if err != nil {
-		fmt.Println("Error loading config file:", err)
+		fmt.Printf("Error loading config file: %v\n", err)
 		return
 	}
 
+	var kafkaClient *event_broker.KafkaClient
 	if config.App.OutputMode == "kafka" {
-		if err := kafka.InitKafka(config.Kafka.Brokers); err != nil {
-			fmt.Println("Error initializing Kafka:", err)
+		kafkaClient, err = event_broker.NewKafkaClient(config.Kafka.Brokers, nil)
+		if err != nil {
+			fmt.Printf("Error initializing Kafka: %v\n", err)
 			return
 		}
-		defer kafka.CloseProducer()
-		go kafka.StartConsumer(config.Kafka.Brokers, config.Kafka.Topic)
+		defer kafkaClient.CloseProducer()
+		go event_broker.StartConsumer(config.Kafka.Brokers, config.Kafka.Topic)
 	}
 
 	connUrl := config.Database.URL
@@ -53,7 +56,12 @@ func main() {
 	orderService := service.NewPostgresService(postgresStorage, wrapperStorage)
 
 	parser := parser.ArgsParser{}
-	cmd := cli.NewCLI(orderService, parser, config.App.OutputMode, config.Kafka.Topic)
+	logger := logger.KafkaLogger{
+		OutputMode:  config.App.OutputMode,
+		KafkaTopic:  config.Kafka.Topic,
+		KafkaClient: kafkaClient,
+	}
+	cmd := cli.NewCLI(orderService, parser, logger)
 
 	commandChan := make(chan string, 10)
 	var wg sync.WaitGroup
@@ -82,7 +90,7 @@ func main() {
 			fmt.Print("> ")
 			input, err := reader.ReadString('\n')
 			if err != nil {
-				fmt.Println("Error reading input:", err)
+				fmt.Printf("Error reading input: %v\n", err)
 				continue
 			}
 			input = strings.TrimSpace(input)

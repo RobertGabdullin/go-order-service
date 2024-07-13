@@ -1,10 +1,10 @@
 database:
-  url: "postgres://postgres:postgres@localhost:5432/orders?sslmode=disable"
+  url: "postgres://username:password@localhost:5432/dbname?sslmode=disable"
 
 kafka:
   brokers:
     - "127.0.0.1:9092"
-  topic: "api_events"
+  topic: "topic_name"
   group_id: "console-consumer-group"
 
 app:
