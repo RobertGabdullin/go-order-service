@@ -20,24 +20,24 @@ import (
 )
 
 func main() {
-	config, err := config.LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		fmt.Printf("Error loading config file: %v\n", err)
 		return
 	}
 
 	var kafkaClient *event_broker.KafkaClient
-	if config.App.OutputMode == "kafka" {
-		kafkaClient, err = event_broker.NewKafkaClient(config.Kafka.Brokers, nil)
+	if cfg.App.OutputMode == config.KafkaOutputMode {
+		kafkaClient, err = event_broker.NewKafkaClient(cfg.Kafka.Brokers, nil)
 		if err != nil {
 			fmt.Printf("Error initializing Kafka: %v\n", err)
 			return
 		}
 		defer kafkaClient.CloseProducer()
-		go event_broker.StartConsumer(config.Kafka.Brokers, config.Kafka.Topic)
+		go event_broker.StartConsumer(cfg.Kafka.Brokers, cfg.Kafka.Topic)
 	}
 
-	connUrl := config.Database.URL
+	connUrl := cfg.Database.URL
 	if connUrl == "" {
 		fmt.Println("Database URL is not set in the config file")
 		return
@@ -57,8 +57,8 @@ func main() {
 
 	parser := parser.ArgsParser{}
 	logger := logger.KafkaLogger{
-		OutputMode:  config.App.OutputMode,
-		KafkaTopic:  config.Kafka.Topic,
+		OutputMode:  cfg.App.OutputMode,
+		KafkaTopic:  cfg.Kafka.Topic,
 		KafkaClient: kafkaClient,
 	}
 	cmd := cli.NewCLI(orderService, parser, logger)

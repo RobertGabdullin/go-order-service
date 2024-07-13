@@ -27,7 +27,7 @@ type Config struct {
 }
 
 func validate(cfg *Config) error {
-	if cfg.App.OutputMode != "direct" && cfg.App.OutputMode != "kafka" {
+	if cfg.App.OutputMode != DirectOutputMode && cfg.App.OutputMode != KafkaOutputMode {
 		return errors.New("unknown output mode")
 	}
 	return nil
