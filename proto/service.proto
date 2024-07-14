@@ -4,13 +4,15 @@ package orders;
 
 option go_package = "./;orders";
 
+import "google/protobuf/empty.proto";
+
 service OrderService {
-    rpc AcceptOrder (AcceptOrderRequest) returns (AcceptOrderResponse);
-    rpc AcceptReturn (AcceptReturnRequest) returns (AcceptReturnResponse);
-    rpc DeliverOrder (DeliverOrderRequest) returns (DeliverOrderResponse);
+    rpc AcceptOrder (AcceptOrderRequest) returns (google.protobuf.Empty);
+    rpc AcceptReturn (AcceptReturnRequest) returns (google.protobuf.Empty);
+    rpc DeliverOrder (DeliverOrderRequest) returns (google.protobuf.Empty);
     rpc GetOrders (GetOrdersRequest) returns (GetOrdersResponse);
     rpc GetReturns (GetReturnsRequest) returns (GetReturnsResponse);
-    rpc ReturnOrder (ReturnOrderRequest) returns (ReturnOrderResponse);
+    rpc ReturnOrder (ReturnOrderRequest) returns (google.protobuf.Empty);
 }
 
 message AcceptOrderRequest {
@@ -22,28 +24,13 @@ message AcceptOrderRequest {
     string wrapper = 6;
 }
 
-message AcceptOrderResponse {
-    string status = 1;
-    string message = 2;
-}
-
 message AcceptReturnRequest {
     int32 user = 1;
     int32 order = 2;
 }
 
-message AcceptReturnResponse {
-    string status = 1;
-    string message = 2;
-}
-
 message DeliverOrderRequest {
     repeated int32 orders = 1;
-}
-
-message DeliverOrderResponse {
-    string status = 1;
-    string message = 2;
 }
 
 message GetOrdersRequest {
@@ -80,9 +67,4 @@ message Return {
 
 message ReturnOrderRequest {
     int32 order = 1;
-}
-
-message ReturnOrderResponse {
-    string status = 1;
-    string message = 2;
 }
