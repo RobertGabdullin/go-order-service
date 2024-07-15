@@ -4,6 +4,11 @@ TEST_DB_CONNECTION_STRING=postgres://postgres:postgres@localhost:5433/orders_tes
 
 PROTO_SRC_DIR := ./proto
 PROTO_OUT_DIR := ./pb
+DEP_DIR=./dep
+
+GOOGLEAPIS_REPO=https://github.com/googleapis/googleapis.git
+GRPC_GATEWAY_REPO=https://github.com/grpc-ecosystem/grpc-gateway.git
+PROTOC_GEN_VALIDATE_REPO=https://github.com/envoyproxy/protoc-gen-validate.git
 
 install-goose:
 	go get -u github.com/pressly/goose/cmd/goose
@@ -41,6 +46,20 @@ clean-test-db:
 
 test: test-db clean-test-db test-migrate-up test-unit test-integration
 
-proto:
-	protoc --proto_path=$(PROTO_SRC_DIR) --go_out=$(PROTO_OUT_DIR) --go-grpc_out=$(PROTO_OUT_DIR) $(PROTO_SRC_DIR)/*.proto
+clone_deps:
+	mkdir -p $(DEP_DIR)
+	git clone $(GOOGLEAPIS_REPO) $(DEP_DIR)/googleapis
+	git clone $(GRPC_GATEWAY_REPO) $(DEP_DIR)/grpc-gateway
+	git clone $(PROTOC_GEN_VALIDATE_REPO) $(DEP_DIR)/protoc-gen-validate
+
+generate:
+	protoc -I $(DEP_DIR)/googleapis \
+	       -I $(DEP_DIR)/grpc-gateway \
+	       -I $(DEP_DIR)/protoc-gen-validate \
+	       --proto_path=$(PROTO_DIR) \
+	       --go_out=$(OUT_DIR) \
+	       --go-grpc_out=$(OUT_DIR) \
+	       --grpc-gateway_out=$(GATEWAY_OUT):$(OUT_DIR) \
+	       --validate_out="lang=go:$(OUT_DIR)" \
+	       $(PROTO_FILES)
 

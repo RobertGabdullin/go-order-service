@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
@@ -32,7 +33,7 @@ func (returnOrders) Description() string {
 	     Использование: returnOrd -order=1`
 }
 
-func (cur returnOrders) Execute(mu *sync.Mutex) error {
+func (cur returnOrders) Execute(mu *sync.Mutex) ([]models.Order, error) {
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -41,22 +42,27 @@ func (cur returnOrders) Execute(mu *sync.Mutex) error {
 	ords, err := cur.service.FindOrders(temp)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(ords) == 0 {
-		return errors.New("such order does not exist")
+		return nil, errors.New("such order does not exist")
 	}
 
 	if ords[0].Status != "alive" && ords[0].Status != "returned" {
-		return errors.New("order is not at storage")
+		return nil, errors.New("order is not at storage")
 	}
 
 	if ords[0].Expire.After(time.Now()) {
-		return errors.New("order should be out of storage limit")
+		return nil, errors.New("order should be out of storage limit")
 	}
 
-	return cur.service.DeleteOrder(cur.order)
+	err = cur.service.DeleteOrder(cur.order)
+	if err != nil {
+		return nil, err
+	}
+
+	return []models.Order{}, nil
 }
 
 func (cmd returnOrders) AssignArgs(m map[string]string) (Command, error) {

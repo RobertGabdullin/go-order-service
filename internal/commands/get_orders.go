@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
@@ -33,26 +34,28 @@ func (getOrders) GetName() string {
 	return "getOrds"
 }
 
-func (cur getOrders) Execute(mu *sync.Mutex) error {
+func (cur getOrders) Execute(mu *sync.Mutex) ([]models.Order, error) {
 
 	mu.Lock()
 	ords, err := cur.service.ListOrders(cur.user)
 	mu.Unlock()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	cnt := 1
 
+	ans := make([]models.Order, 0)
 	for i := len(ords) - 1; i >= 0 && (cur.count == -1 || cur.count >= cnt); i-- {
 		if ords[i].Status == "alive" {
 			fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s\n", cnt, ords[i].Id, ords[i].Recipient, ords[i].Expire)
 			cnt++
+			ans = append(ans, ords[i])
 		}
 	}
 
-	return nil
+	return ans, nil
 }
 
 func (cmd getOrders) AssignArgs(m map[string]string) (Command, error) {

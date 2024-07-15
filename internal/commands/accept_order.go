@@ -33,18 +33,18 @@ func (AcceptOrder) GetName() string {
 	return "acceptOrd"
 }
 
-func (cur AcceptOrder) Execute(mu *sync.Mutex) error {
+func (cur AcceptOrder) Execute(mu *sync.Mutex) ([]models.Order, error) {
 	if cur.expire.Before(time.Now()) {
-		return errors.New("storage time is out")
+		return nil, errors.New("storage time is out")
 	}
 
 	wrapper, err := cur.service.GetWrapper(cur.wrapper)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if wrapper.MaxWeight.Valid && cur.weight > int(wrapper.MaxWeight.Int64) {
-		return errors.New("order weight exceeds the maximum limit for the chosen wrapper")
+		return nil, errors.New("order weight exceeds the maximum limit for the chosen wrapper")
 	}
 
 	hash := hash.GenerateHash()
@@ -52,7 +52,12 @@ func (cur AcceptOrder) Execute(mu *sync.Mutex) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	return cur.service.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.expire, "alive", hash, cur.weight, cur.basePrice, wrapper.Type))
+	err = cur.service.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.expire, "alive", hash, cur.weight, cur.basePrice, wrapper.Type))
+	if err != nil {
+		return nil, err
+	}
+
+	return []models.Order{}, nil
 }
 
 func (AcceptOrder) Description() string {

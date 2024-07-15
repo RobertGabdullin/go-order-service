@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
 )
@@ -28,7 +29,7 @@ func (deliverOrder) GetName() string {
 	return "deliverOrd"
 }
 
-func (cur deliverOrder) Execute(mu *sync.Mutex) error {
+func (cur deliverOrder) Execute(mu *sync.Mutex) ([]models.Order, error) {
 
 	hash := hash.GenerateHash()
 
@@ -37,7 +38,7 @@ func (cur deliverOrder) Execute(mu *sync.Mutex) error {
 
 	ords, err := cur.service.FindOrders(cur.ords)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	temp := make(map[int]bool)
@@ -45,23 +46,23 @@ func (cur deliverOrder) Execute(mu *sync.Mutex) error {
 		temp[elem.Recipient] = true
 	}
 	if len(temp) > 1 {
-		return errors.New("list of orders should belong only to one person")
+		return nil, errors.New("list of orders should belong only to one person")
 	}
 
 	for _, elem := range ords {
 		if elem.Status != "alive" {
-			return errors.New("some orders are not available")
+			return nil, errors.New("some orders are not available")
 		}
 		if elem.Expire.Before(time.Now()) {
-			return errors.New("some orders is out of storage limit date")
+			return nil, errors.New("some orders is out of storage limit date")
 		}
 		tempErr := cur.service.ChangeStatus(elem.Id, "delivered", hash)
 		if tempErr != nil {
-			return tempErr
+			return nil, tempErr
 		}
 	}
 
-	return nil
+	return []models.Order{}, nil
 }
 
 func (deliverOrder) Description() string {

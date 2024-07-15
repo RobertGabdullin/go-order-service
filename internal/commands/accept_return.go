@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
 )
@@ -28,7 +29,7 @@ func (acceptReturn) GetName() string {
 	return "acceptReturn"
 }
 
-func (cur acceptReturn) Execute(mu *sync.Mutex) error {
+func (cur acceptReturn) Execute(mu *sync.Mutex) ([]models.Order, error) {
 
 	hash := hash.GenerateHash()
 
@@ -39,7 +40,7 @@ func (cur acceptReturn) Execute(mu *sync.Mutex) error {
 	ords, err := cur.service.FindOrders(temp)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, elem := range ords {
@@ -47,15 +48,20 @@ func (cur acceptReturn) Execute(mu *sync.Mutex) error {
 			continue
 		}
 		if elem.Status != "delivered" {
-			return errors.New("such an order has never been issued")
+			return nil, errors.New("such an order has never been issued")
 		}
 		if elem.DeliveredAt.AddDate(0, 0, 2).Before(time.Now()) {
-			return errors.New("the order can only be returned within two days after issue")
+			return nil, errors.New("the order can only be returned within two days after issue")
 		}
-		return cur.service.ChangeStatus(cur.order, "returned", hash)
+		err = cur.service.ChangeStatus(cur.order, "returned", hash)
+		if err != nil {
+			return nil, err
+		}
+
+		return []models.Order{}, nil
 	}
 
-	return errors.New("order with such ids does not exist")
+	return nil, errors.New("order with such ids does not exist")
 }
 
 func (cmd acceptReturn) AssignArgs(m map[string]string) (Command, error) {

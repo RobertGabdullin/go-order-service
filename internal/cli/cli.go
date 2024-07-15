@@ -80,5 +80,6 @@ func (c CLI) Run(input string) error {
 		return err
 	}
 
-	return cmd.Execute(c.mu)
+	_, err = cmd.Execute(c.mu)
+	return err
 }

@@ -5,37 +5,99 @@ package orders;
 option go_package = "./;orders";
 
 import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
 service OrderService {
-    rpc AcceptOrder (AcceptOrderRequest) returns (google.protobuf.Empty);
-    rpc AcceptReturn (AcceptReturnRequest) returns (google.protobuf.Empty);
-    rpc DeliverOrder (DeliverOrderRequest) returns (google.protobuf.Empty);
-    rpc GetOrders (GetOrdersRequest) returns (GetOrdersResponse);
-    rpc GetReturns (GetReturnsRequest) returns (GetReturnsResponse);
-    rpc ReturnOrder (ReturnOrderRequest) returns (google.protobuf.Empty);
+    rpc AcceptOrder (AcceptOrderRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/orders/accept"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Accept an order",
+            description: "This endpoint accepts an order based on the provided details."
+        };
+    }
+    rpc AcceptReturn (AcceptReturnRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/returns/accept"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Accept a return",
+            description: "This endpoint accepts a return based on the provided details."
+        };
+    }
+    rpc DeliverOrder (DeliverOrderRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/orders/deliver"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Deliver orders",
+            description: "This endpoint delivers the specified orders."
+        };
+    }
+    rpc GetOrders (GetOrdersRequest) returns (GetOrdersResponse) {
+        option (google.api.http) = {
+            get: "/orders"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get orders",
+            description: "This endpoint retrieves orders for the specified user."
+        };
+    }
+    rpc GetReturns (GetReturnsRequest) returns (GetReturnsResponse) {
+        option (google.api.http) = {
+            get: "/returns"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get returns",
+            description: "This endpoint retrieves returns with pagination."
+        };
+    }
+    rpc ReturnOrder (ReturnOrderRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/orders/return"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Return an order",
+            description: "This endpoint delete order."
+        };
+    }
 }
 
 message AcceptOrderRequest {
-    int32 user = 1;
-    int32 order = 2;
-    int32 weight = 3;
-    int32 basePrice = 4;
-    string expire = 5;
-    string wrapper = 6;
+    int32 user = 1 [(validate.rules).int32.gt = 0];
+    int32 order = 2 [(validate.rules).int32.gt = 0];
+    int32 weight = 3 [(validate.rules).int32.gt = 0];
+    int32 basePrice = 4 [(validate.rules).int32.gt = 0];
+    string expire = 5 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 25
+    }];
+    string wrapper = 6 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 25
+    }];
 }
 
 message AcceptReturnRequest {
-    int32 user = 1;
-    int32 order = 2;
+    int32 user = 1 [(validate.rules).int32.gt = 0];
+    int32 order = 2 [(validate.rules).int32.gt = 0];
 }
 
 message DeliverOrderRequest {
-    repeated int32 orders = 1;
+    repeated int32 orders = 1 [(validate.rules).repeated.items.int32.gt = 0];
 }
 
 message GetOrdersRequest {
-    int32 user = 1;
-    int32 count = 2;
+    int32 user = 1 [(validate.rules).int32.gt = 0];
+    int32 count = 2 [
+        (validate.rules).int32.gte = 0
+    ];
 }
 
 message GetOrdersResponse {
@@ -43,15 +105,23 @@ message GetOrdersResponse {
 }
 
 message Order {
-    int32 id = 1;
-    int32 recipient = 2;
-    string expire = 3;
-    string status = 4;
+    int32 id = 1 [(validate.rules).int32.gt = 0];
+    int32 recipient = 2 [(validate.rules).int32.gt = 0];
+    string expire = 3 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 25
+    }];
+    string status = 4 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 25
+    }];
 }
 
 message GetReturnsRequest {
-    int32 offset = 1;
-    int32 limit = 2;
+    int32 offset = 1 [
+        (validate.rules).int32.gt = 0
+    ];
+    int32 limit = 2 [(validate.rules).int32.gt = 0];
 }
 
 message GetReturnsResponse {
@@ -59,12 +129,18 @@ message GetReturnsResponse {
 }
 
 message Return {
-    int32 id = 1;
-    int32 recipient = 2;
-    string expire = 3;
-    string returnedAt = 4;
+    int32 id = 1 [(validate.rules).int32.gt = 0];
+    int32 recipient = 2 [(validate.rules).int32.gt = 0];
+    string expire = 3 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 100
+    }];
+    string returnedAt = 4 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 100
+    }];
 }
 
 message ReturnOrderRequest {
-    int32 order = 1;
+    int32 order = 1 [(validate.rules).int32.gt = 0];
 }

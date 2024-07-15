@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
@@ -27,21 +28,21 @@ func (getReturns) GetName() string {
 	return "getReturns"
 }
 
-func (cur getReturns) Execute(mu *sync.Mutex) error {
+func (cur getReturns) Execute(mu *sync.Mutex) ([]models.Order, error) {
 
 	mu.Lock()
 	ords, err := cur.service.GetReturns(cur.offset, cur.limit)
 	mu.Unlock()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for i := range ords {
 		fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s acceptedAt = %s\n", i+1, ords[i].Id, ords[i].Recipient, ords[i].Expire, ords[i].ReturnedAt)
 	}
 
-	return nil
+	return ords, nil
 }
 
 func (getReturns) Description() string {
