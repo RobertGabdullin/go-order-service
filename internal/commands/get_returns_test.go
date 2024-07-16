@@ -75,7 +75,7 @@ func TestGetReturns_Execute(t *testing.T) {
 
 	service.On("GetReturns", 0, 2).Return(returns, nil)
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.NoError(t, err)
 
 	service.AssertCalled(t, "GetReturns", 0, 2)

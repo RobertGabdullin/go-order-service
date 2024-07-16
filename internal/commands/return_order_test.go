@@ -64,7 +64,7 @@ func TestReturnOrder_Execute(t *testing.T) {
 	service.On("FindOrders", []int{1}).Return([]models.Order{order}, nil)
 	service.On("DeleteOrder", 1).Return(nil)
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.NoError(t, err)
 
 	service.AssertCalled(t, "FindOrders", []int{1})
@@ -79,7 +79,7 @@ func TestReturnOrder_Execute_OrderNotFound(t *testing.T) {
 
 	service.On("FindOrders", []int{1}).Return([]models.Order{}, nil)
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	tests.ErrorContains(t, err, "such order does not exist")
 
 	service.AssertCalled(t, "FindOrders", []int{1})
@@ -98,7 +98,7 @@ func TestReturnOrder_Execute_OrderNotInStorage(t *testing.T) {
 
 	service.On("FindOrders", []int{1}).Return([]models.Order{order}, nil)
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	tests.ErrorContains(t, err, "order is not at storage")
 
 	service.AssertCalled(t, "FindOrders", []int{1})
@@ -117,7 +117,7 @@ func TestReturnOrder_Execute_OrderNotExpired(t *testing.T) {
 
 	service.On("FindOrders", []int{1}).Return([]models.Order{order}, nil)
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	tests.ErrorContains(t, err, "order should be out of storage limit")
 
 	service.AssertCalled(t, "FindOrders", []int{1})

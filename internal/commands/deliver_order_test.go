@@ -78,7 +78,7 @@ func TestDeliverOrder_Execute(t *testing.T) {
 
 	cmd := SetDeliverOrd(service, []int{1, 2})
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.NoError(t, err)
 
 	service.AssertExpectations(t)
@@ -92,7 +92,7 @@ func TestDeliverOrder_Execute_OrderNotFound(t *testing.T) {
 
 	cmd := SetDeliverOrd(service, []int{1, 2})
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	tests.ErrorContains(t, err, "order not found")
 
 	service.AssertCalled(t, "FindOrders", []int{1, 2})
@@ -110,7 +110,7 @@ func TestDeliverOrder_Execute_InvalidUser(t *testing.T) {
 
 	cmd := SetDeliverOrd(service, []int{1, 2})
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.Error(t, err)
 	tests.ErrorContains(t, err, "list of orders should belong only to one person")
 
@@ -129,7 +129,7 @@ func TestDeliverOrder_Execute_OrderNotAvailable(t *testing.T) {
 
 	cmd := SetDeliverOrd(service, []int{1, 2})
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.Error(t, err)
 	tests.ErrorContains(t, err, "some orders are not available")
 
@@ -147,7 +147,7 @@ func TestDeliverOrder_Execute_OrderOutOfStorageLimit(t *testing.T) {
 
 	cmd := SetDeliverOrd(service, []int{1})
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.Error(t, err)
 	tests.ErrorContains(t, err, "some orders is out of storage limit date")
 

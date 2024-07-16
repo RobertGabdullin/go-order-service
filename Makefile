@@ -2,9 +2,10 @@ MIGRATION_DIR=./migrations
 DB_CONNECTION_STRING=postgres://postgres:postgres@localhost:5432/orders?sslmode=disable
 TEST_DB_CONNECTION_STRING=postgres://postgres:postgres@localhost:5433/orders_test?sslmode=disable
 
-PROTO_SRC_DIR := ./proto
-PROTO_OUT_DIR := ./pb
+PROTO_DIR=./proto
+PROTO_OUT_DIR=./pb
 DEP_DIR=./dep
+PROTO_FILES=./proto/*.proto
 
 GOOGLEAPIS_REPO=https://github.com/googleapis/googleapis.git
 GRPC_GATEWAY_REPO=https://github.com/grpc-ecosystem/grpc-gateway.git
@@ -34,7 +35,7 @@ test-unit:
 test-integration:
 	go test -tags=integration ./tests/...
 
-test-db:
+test-environment:
 	docker-compose -f docker-compose.test.yml up -d
 
 test-migrate-up:
@@ -46,20 +47,28 @@ clean-test-db:
 
 test: test-db clean-test-db test-migrate-up test-unit test-integration
 
-clone_deps:
+clone-deps:
 	mkdir -p $(DEP_DIR)
 	git clone $(GOOGLEAPIS_REPO) $(DEP_DIR)/googleapis
 	git clone $(GRPC_GATEWAY_REPO) $(DEP_DIR)/grpc-gateway
 	git clone $(PROTOC_GEN_VALIDATE_REPO) $(DEP_DIR)/protoc-gen-validate
+
+install-deps: clone-deps
+	go mod tidy
+	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+	go install github.com/envoyproxy/protoc-gen-validate@latest
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 generate:
 	protoc -I $(DEP_DIR)/googleapis \
 	       -I $(DEP_DIR)/grpc-gateway \
 	       -I $(DEP_DIR)/protoc-gen-validate \
 	       --proto_path=$(PROTO_DIR) \
-	       --go_out=$(OUT_DIR) \
-	       --go-grpc_out=$(OUT_DIR) \
-	       --grpc-gateway_out=$(GATEWAY_OUT):$(OUT_DIR) \
-	       --validate_out="lang=go:$(OUT_DIR)" \
+	       --go_out=$(PROTO_OUT_DIR) \
+	       --go-grpc_out=$(PROTO_OUT_DIR) \
+	       --grpc-gateway_out=logtostderr=true:$(PROTO_OUT_DIR) \
+	       --validate_out="lang=go:$(PROTO_OUT_DIR)" \
 	       $(PROTO_FILES)
 

@@ -78,7 +78,7 @@ func TestAcceptOrder_Execute(t *testing.T) {
 
 	cmd := SetAcceptOrd(service, 1, 1, 5, 100, time.Now().Add(24*time.Hour), "none")
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.NoError(t, err)
 
 	service.AssertCalled(t, "GetWrapper", "none")
@@ -94,7 +94,7 @@ func TestAcceptOrder_Execute_InvalidWrapper(t *testing.T) {
 
 	cmd := SetAcceptOrd(service, 1, 1, 5, 100, time.Now().Add(24*time.Hour), "none")
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	tests.ErrorContains(t, err, "wrapper not found")
 
 	service.AssertCalled(t, "GetWrapper", "none")
@@ -111,7 +111,7 @@ func TestAcceptOrder_Execute_InvalidOrder(t *testing.T) {
 
 	cmd := SetAcceptOrd(service, 1, 1, 5, 100, time.Now().Add(24*time.Hour), "pack")
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	tests.ErrorContains(t, err, "order not valid")
 
 	service.AssertCalled(t, "GetWrapper", "pack")

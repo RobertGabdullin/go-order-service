@@ -75,7 +75,7 @@ func TestGetOrders_Execute(t *testing.T) {
 
 	service.On("ListOrders", 1).Return(orders, nil)
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.NoError(t, err)
 
 	service.AssertCalled(t, "ListOrders", 1)

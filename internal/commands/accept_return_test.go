@@ -69,7 +69,7 @@ func TestAcceptReturn_Execute(t *testing.T) {
 	service.On("FindOrders", []int{1}).Return(orders, nil)
 	service.On("ChangeStatus", 1, "returned", mock.AnythingOfType("string")).Return(nil)
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.NoError(t, err)
 
 	service.AssertCalled(t, "FindOrders", []int{1})
@@ -88,7 +88,7 @@ func TestAcceptReturn_Execute_InvalidDeliverTime(t *testing.T) {
 
 	service.On("FindOrders", []int{1}).Return(orders, nil)
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	assert.Error(t, err)
 	tests.ErrorContains(t, err, "the order can only be returned within two days after issue")
 
@@ -108,7 +108,7 @@ func TestAcceptReturn_Execute_InvalidTypeOrder(t *testing.T) {
 
 	service.On("FindOrders", []int{1}).Return(orders, nil)
 
-	err := cmd.Execute(&sync.Mutex{})
+	_, err := cmd.Execute(&sync.Mutex{})
 	tests.ErrorContains(t, err, "such an order has never been issued")
 
 	service.AssertCalled(t, "FindOrders", []int{1})
