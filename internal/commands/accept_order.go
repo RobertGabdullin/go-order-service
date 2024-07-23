@@ -3,61 +3,24 @@ package commands
 import (
 	"errors"
 	"strconv"
-	"sync"
 	"time"
-
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/pkg/hash"
 )
 
 type AcceptOrder struct {
-	service   service.StorageService
-	recipient int
-	order     int
-	expire    time.Time
-	weight    int
-	basePrice int
-	wrapper   string
+	Recipient int
+	Order     int
+	Expire    time.Time
+	Weight    int
+	BasePrice int
+	Wrapper   string
 }
 
-func NewAcceptOrd(service service.StorageService) AcceptOrder {
-	return AcceptOrder{service: service, wrapper: "none"}
-}
-
-func SetAcceptOrd(service service.StorageService, rec, ord, weight, basePrice int, expire time.Time, wrapper string) AcceptOrder {
-	return AcceptOrder{service, rec, ord, expire, weight, basePrice, wrapper}
+func NewAcceptOrder(rec, ord, weight, basePrice int, expire time.Time, wrapper string) AcceptOrder {
+	return AcceptOrder{rec, ord, expire, weight, basePrice, wrapper}
 }
 
 func (AcceptOrder) GetName() string {
 	return "acceptOrd"
-}
-
-func (cur AcceptOrder) Execute(mu *sync.Mutex) ([]models.Order, error) {
-	if cur.expire.Before(time.Now()) {
-		return nil, errors.New("storage time is out")
-	}
-
-	wrapper, err := cur.service.GetWrapper(cur.wrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	if wrapper.MaxWeight.Valid && cur.weight > int(wrapper.MaxWeight.Int64) {
-		return nil, errors.New("order weight exceeds the maximum limit for the chosen wrapper")
-	}
-
-	hash := hash.GenerateHash()
-
-	mu.Lock()
-	defer mu.Unlock()
-
-	err = cur.service.AddOrder(models.NewOrder(cur.order, cur.recipient, cur.expire, "alive", hash, cur.weight, cur.basePrice, wrapper.Type))
-	if err != nil {
-		return nil, err
-	}
-
-	return []models.Order{}, nil
 }
 
 func (AcceptOrder) Description() string {
@@ -66,9 +29,9 @@ func (AcceptOrder) Description() string {
 		Использование: acceptOrd -user=1 -order=1 -weight=5 -basePrice=100 -expire=2024-06-05T10 -wrapper=pack`
 }
 
-func (cmd AcceptOrder) AssignArgs(m map[string]string) (Command, error) {
+func AcceptOrderAssignArgs(m map[string]string) (AcceptOrder, error) {
 	if len(m) < 5 || len(m) > 6 {
-		return nil, errors.New("invalid number of flags")
+		return AcceptOrder{}, errors.New("invalid number of flags")
 	}
 
 	var user, order, weight, basePrice int
@@ -79,46 +42,46 @@ func (cmd AcceptOrder) AssignArgs(m map[string]string) (Command, error) {
 	if elem, ok := m["user"]; ok {
 		user, err = strconv.Atoi(elem)
 		if err != nil {
-			return nil, errors.New("invalid value for user")
+			return AcceptOrder{}, errors.New("invalid value for user")
 		}
 	} else {
-		return nil, errors.New("missing user flag")
+		return AcceptOrder{}, errors.New("missing user flag")
 	}
 
 	if elem, ok := m["order"]; ok {
 		order, err = strconv.Atoi(elem)
 		if err != nil {
-			return nil, errors.New("invalid value for order")
+			return AcceptOrder{}, errors.New("invalid value for order")
 		}
 	} else {
-		return nil, errors.New("missing order flag")
+		return AcceptOrder{}, errors.New("missing order flag")
 	}
 
 	if elem, ok := m["weight"]; ok {
 		weight, err = strconv.Atoi(elem)
 		if err != nil {
-			return nil, errors.New("invalid value for weight")
+			return AcceptOrder{}, errors.New("invalid value for weight")
 		}
 	} else {
-		return nil, errors.New("missing weight flag")
+		return AcceptOrder{}, errors.New("missing weight flag")
 	}
 
 	if elem, ok := m["basePrice"]; ok {
 		basePrice, err = strconv.Atoi(elem)
 		if err != nil {
-			return nil, errors.New("invalid value for basePrice")
+			return AcceptOrder{}, errors.New("invalid value for basePrice")
 		}
 	} else {
-		return nil, errors.New("missing basePrice flag")
+		return AcceptOrder{}, errors.New("missing basePrice flag")
 	}
 
 	if elem, ok := m["expire"]; ok {
 		expire, err = time.Parse("2006-01-02T15", elem)
 		if err != nil {
-			return nil, errors.New("invalid value for expire")
+			return AcceptOrder{}, errors.New("invalid value for expire")
 		}
 	} else {
-		return nil, errors.New("missing expire flag")
+		return AcceptOrder{}, errors.New("missing expire flag")
 	}
 
 	if elem, ok := m["wrapper"]; ok {
@@ -127,5 +90,5 @@ func (cmd AcceptOrder) AssignArgs(m map[string]string) (Command, error) {
 		wrapper = "none"
 	}
 
-	return SetAcceptOrd(cmd.service, user, order, weight, basePrice, expire, wrapper), nil
+	return NewAcceptOrder(user, order, weight, basePrice, expire, wrapper), nil
 }

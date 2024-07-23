@@ -2,65 +2,31 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
-	"sync"
-
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
-type getOrders struct {
-	service service.StorageService
-	user    int
-	count   int
+type GetOrders struct {
+	User  int
+	Count int
 }
 
-func NewGetOrds(service service.StorageService) getOrders {
-	return getOrders{service: service}
+func (GetOrders) GetName() string {
+	return "getOrds"
 }
 
-func (getOrders) Description() string {
+func (GetOrders) Description() string {
 	return `Получить список заказов. На вход принимается ID пользователя (user) как обязательный параметр.
 	     Также можно указать опциональный параметр (count), который позволяет получить только последние N заказов.
 	     Использование: getOrds -user=1 -count=5`
 }
 
-func SetGetOrds(service service.StorageService, user, count int) getOrders {
-	return getOrders{service, user, count}
+func NewGetOrders(user, count int) GetOrders {
+	return GetOrders{user, count}
 }
 
-func (getOrders) GetName() string {
-	return "getOrds"
-}
-
-func (cur getOrders) Execute(mu *sync.Mutex) ([]models.Order, error) {
-
-	mu.Lock()
-	ords, err := cur.service.ListOrders(cur.user)
-	mu.Unlock()
-
-	if err != nil {
-		return nil, err
-	}
-
-	cnt := 1
-
-	ans := make([]models.Order, 0)
-	for i := len(ords) - 1; i >= 0 && (cur.count == -1 || cur.count >= cnt); i-- {
-		if ords[i].Status == "alive" {
-			fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s\n", cnt, ords[i].Id, ords[i].Recipient, ords[i].Expire)
-			cnt++
-			ans = append(ans, ords[i])
-		}
-	}
-
-	return ans, nil
-}
-
-func (cmd getOrders) AssignArgs(m map[string]string) (Command, error) {
+func GetOrdersAssignArgs(m map[string]string) (GetOrders, error) {
 	if len(m) < 1 || len(m) > 2 {
-		return nil, errors.New("invalid number of flags")
+		return GetOrders{}, errors.New("invalid number of flags")
 	}
 
 	user, count := 0, -1
@@ -69,18 +35,18 @@ func (cmd getOrders) AssignArgs(m map[string]string) (Command, error) {
 	if userStr, ok := m["user"]; ok {
 		user, err = strconv.Atoi(userStr)
 		if err != nil {
-			return nil, errors.New("invalid value for user")
+			return GetOrders{}, errors.New("invalid value for user")
 		}
 	} else {
-		return nil, errors.New("missing user flag")
+		return GetOrders{}, errors.New("missing user flag")
 	}
 
 	if countStr, ok := m["count"]; ok {
 		count, err = strconv.Atoi(countStr)
 		if err != nil || count < 0 {
-			return nil, errors.New("invalid value for count")
+			return GetOrders{}, errors.New("invalid value for count")
 		}
 	}
 
-	return SetGetOrds(cmd.service, user, count), nil
+	return NewGetOrders(user, count), nil
 }

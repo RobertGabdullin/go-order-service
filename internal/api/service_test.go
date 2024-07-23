@@ -1,5 +1,3 @@
-//go:build unit
-
 package api
 
 import (
@@ -9,175 +7,239 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/commands"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 	pb "gitlab.ozon.dev/r_gabdullin/homework-1/pb"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/tests"
-	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func TestAcceptOrder(t *testing.T) {
-	t.Parallel()
-
-	mockStorageService := new(tests.MockStorageService)
-	s := NewServer(mockStorageService, nil)
-
-	mockStorageService.On("AddOrder", mock.AnythingOfType("models.Order")).Return(nil)
-
-	mockStorageService.On("GetWrapper", "wrapper").Return(models.Wrapper{}, nil)
+func TestAcceptOrder_Success(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
 	req := &pb.AcceptOrderRequest{
 		User:      1,
 		Order:     1,
-		Weight:    1,
-		BasePrice: 1,
-		Expire:    "2024-12-31T23",
-		Wrapper:   "wrapper",
+		Weight:    10,
+		BasePrice: 100,
+		Expire:    "2025-12-31T12",
+		Wrapper:   "pack",
 	}
 
-	resp, err := s.AcceptOrder(context.Background(), req)
+	mockExecutor.On("AcceptOrder", mock.Anything).Return(nil, nil)
+
+	resp, err := server.AcceptOrder(context.Background(), req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, &emptypb.Empty{}, resp)
-	mockStorageService.AssertExpectations(t)
+	assert.NotNil(t, resp)
+	mockExecutor.AssertExpectations(t)
 }
 
-func TestAcceptReturn(t *testing.T) {
-	t.Parallel()
-	mockStorageService := new(tests.MockStorageService)
+func TestAcceptOrder_InvalidRequest(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
-	s := NewServer(mockStorageService, nil)
+	req := &pb.AcceptOrderRequest{
+		User:      1,
+		Order:     1,
+		Weight:    10,
+		BasePrice: 100,
+		Expire:    "invalid-date",
+		Wrapper:   "pack",
+	}
 
-	mockStorageService.On("ChangeStatus", 1, "returned", mock.AnythingOfType("string")).Return(nil)
-	mockStorageService.On("FindOrders", []int{1}).Return([]models.Order{
-		{
-			Id:          1,
-			Recipient:   1,
-			Status:      "delivered",
-			DeliveredAt: time.Now().Add(-24 * time.Hour),
-		},
-	}, nil)
+	resp, err := server.AcceptOrder(context.Background(), req)
+
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestAcceptReturn_Success(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
 	req := &pb.AcceptReturnRequest{
 		User:  1,
 		Order: 1,
 	}
 
-	resp, err := s.AcceptReturn(context.Background(), req)
+	cmd := commands.NewAcceptReturn(int(req.User), int(req.Order))
+
+	mockExecutor.On("AcceptReturn", cmd).Return(nil, nil)
+
+	resp, err := server.AcceptReturn(context.Background(), req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, &emptypb.Empty{}, resp)
-	mockStorageService.AssertExpectations(t)
+	assert.NotNil(t, resp)
+	mockExecutor.AssertExpectations(t)
 }
 
-func TestDeliverOrder(t *testing.T) {
-	t.Parallel()
+func TestAcceptReturn_InvalidRequest(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
-	mockStorageService := new(tests.MockStorageService)
-	s := NewServer(mockStorageService, nil)
+	req := &pb.AcceptReturnRequest{
+		User:  1,
+		Order: -1,
+	}
 
-	mockStorageService.On("FindOrders", []int{1, 2}).Return([]models.Order{
-		{
-			Id:        1,
-			Recipient: 1,
-			Status:    "alive",
-			Expire:    time.Now().Add(24 * time.Hour),
-		},
-		{
-			Id:        2,
-			Recipient: 1,
-			Status:    "alive",
-			Expire:    time.Now().Add(24 * time.Hour),
-		},
-	}, nil)
-	mockStorageService.On("ChangeStatus", 1, "delivered", mock.AnythingOfType("string")).Return(nil)
-	mockStorageService.On("ChangeStatus", 2, "delivered", mock.AnythingOfType("string")).Return(nil)
+	resp, err := server.AcceptReturn(context.Background(), req)
+
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestDeliverOrder_Success(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
 	req := &pb.DeliverOrderRequest{
-		Orders: []int32{1, 2},
+		Orders: []int32{1, 2, 3},
 	}
 
-	resp, err := s.DeliverOrder(context.Background(), req)
+	orders := []int{1, 2, 3}
+	cmd := commands.NewDeliverOrder(orders)
+
+	mockExecutor.On("DeliverOrder", cmd).Return(nil, nil)
+
+	resp, err := server.DeliverOrder(context.Background(), req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, &emptypb.Empty{}, resp)
-	mockStorageService.AssertExpectations(t)
+	assert.NotNil(t, resp)
+	mockExecutor.AssertExpectations(t)
 }
 
-func TestGetOrders(t *testing.T) {
-	t.Parallel()
+func TestDeliverOrder_InvalidRequest(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
-	mockStorageService := new(tests.MockStorageService)
-	s := NewServer(mockStorageService, nil)
-
-	orders := []models.Order{
-		{Id: 1, Recipient: 2, Expire: time.Now(), Status: "alive"},
+	req := &pb.DeliverOrderRequest{
+		Orders: []int32{-1},
 	}
 
-	mockStorageService.On("ListOrders", 2).Return(orders, nil)
+	resp, err := server.DeliverOrder(context.Background(), req)
+
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGetOrders_Success(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
 	req := &pb.GetOrdersRequest{
-		User:  2,
-		Count: 1,
+		User:  1,
+		Count: 5,
 	}
 
-	resp, err := s.GetOrders(context.Background(), req)
+	cmd := commands.NewGetOrders(int(req.User), int(req.Count))
+	expectedOrders := []models.Order{
+		{Id: 1, Recipient: 1, Expire: time.Now(), Status: "alive"},
+		{Id: 2, Recipient: 1, Expire: time.Now(), Status: "alive"},
+	}
+
+	mockExecutor.On("GetOrders", cmd).Return(expectedOrders, nil)
+
+	resp, err := server.GetOrders(context.Background(), req)
 
 	assert.NoError(t, err)
-	assert.Len(t, resp.Orders, 1)
-	assert.Equal(t, int32(1), resp.Orders[0].Id)
-	assert.Equal(t, int32(2), resp.Orders[0].Recipient)
-	assert.Equal(t, "alive", resp.Orders[0].Status)
-	mockStorageService.AssertExpectations(t)
+	assert.NotNil(t, resp)
+	assert.Len(t, resp.Orders, 2)
+	mockExecutor.AssertExpectations(t)
 }
 
-func TestGetReturns(t *testing.T) {
-	t.Parallel()
+func TestGetOrders_InvalidRequest(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
-	mockStorageService := new(tests.MockStorageService)
-	s := NewServer(mockStorageService, nil)
-
-	returns := []models.Order{
-		{Id: 1, Recipient: 2, Expire: time.Now(), ReturnedAt: time.Now()},
+	req := &pb.GetOrdersRequest{
+		User:  -1,
+		Count: 5,
 	}
 
-	mockStorageService.On("GetReturns", 1, 1).Return(returns, nil)
+	resp, err := server.GetOrders(context.Background(), req)
+
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGetReturns_Success(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
 	req := &pb.GetReturnsRequest{
-		Offset: 1,
-		Limit:  1,
+		Offset: 0,
+		Limit:  5,
 	}
 
-	resp, err := s.GetReturns(context.Background(), req)
+	cmd := commands.NewGetReturns(int(req.Offset), int(req.Limit))
+	expectedReturns := []models.Order{
+		{Id: 1, Recipient: 1, Expire: time.Now(), ReturnedAt: time.Now(), Status: "returned"},
+		{Id: 2, Recipient: 2, Expire: time.Now(), ReturnedAt: time.Now(), Status: "returned"},
+	}
+
+	mockExecutor.On("GetReturns", cmd).Return(expectedReturns, nil)
+
+	resp, err := server.GetReturns(context.Background(), req)
 
 	assert.NoError(t, err)
-	assert.Len(t, resp.Returns, 1)
-	assert.Equal(t, int32(1), resp.Returns[0].Id)
-	assert.Equal(t, int32(2), resp.Returns[0].Recipient)
-	mockStorageService.AssertExpectations(t)
+	assert.NotNil(t, resp)
+	assert.Len(t, resp.Returns, 2)
+	mockExecutor.AssertExpectations(t)
 }
 
-func TestReturnOrder(t *testing.T) {
-	t.Parallel()
+func TestGetReturns_InvalidRequest(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
-	mockStorageService := new(tests.MockStorageService)
-	s := NewServer(mockStorageService, nil)
+	req := &pb.GetReturnsRequest{
+		Offset: -1,
+		Limit:  5,
+	}
 
-	mockStorageService.On("FindOrders", []int{1}).Return([]models.Order{
-		{
-			Id:     1,
-			Status: "alive",
-			Expire: time.Now().Add(-24 * time.Hour),
-		},
-	}, nil)
-	mockStorageService.On("DeleteOrder", 1).Return(nil)
+	resp, err := server.GetReturns(context.Background(), req)
+
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestReturnOrder_Success(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
 
 	req := &pb.ReturnOrderRequest{
 		Order: 1,
 	}
 
-	resp, err := s.ReturnOrder(context.Background(), req)
+	cmd := commands.NewReturnOrder(int(req.Order))
+
+	mockExecutor.On("ReturnOrder", cmd).Return(nil, nil)
+
+	resp, err := server.ReturnOrder(context.Background(), req)
 
 	assert.NoError(t, err)
-	assert.Equal(t, &emptypb.Empty{}, resp)
-	mockStorageService.AssertExpectations(t)
+	assert.NotNil(t, resp)
+	mockExecutor.AssertExpectations(t)
+}
+
+func TestReturnOrder_InvalidRequest(t *testing.T) {
+	mockExecutor := new(tests.CommandExecutorMock)
+	server := NewServer(mockExecutor, nil)
+
+	req := &pb.ReturnOrderRequest{
+		Order: -1,
+	}
+
+	resp, err := server.ReturnOrder(context.Background(), req)
+
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
 }

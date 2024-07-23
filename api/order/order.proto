@@ -4,13 +4,12 @@ package orders;
 
 option go_package = "./;orders";
 
-import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 import "validate/validate.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
 service OrderService {
-    rpc AcceptOrder (AcceptOrderRequest) returns (google.protobuf.Empty) {
+    rpc AcceptOrder (AcceptOrderRequest) returns (AcceptOrderResponse) {
         option (google.api.http) = {
             post: "/orders/accept"
             body: "*"
@@ -20,7 +19,7 @@ service OrderService {
             description: "This endpoint accepts an order based on the provided details."
         };
     }
-    rpc AcceptReturn (AcceptReturnRequest) returns (google.protobuf.Empty) {
+    rpc AcceptReturn (AcceptReturnRequest) returns (AcceptReturnResponse) {
         option (google.api.http) = {
             post: "/returns/accept"
             body: "*"
@@ -30,7 +29,7 @@ service OrderService {
             description: "This endpoint accepts a return based on the provided details."
         };
     }
-    rpc DeliverOrder (DeliverOrderRequest) returns (google.protobuf.Empty) {
+    rpc DeliverOrder (DeliverOrderRequest) returns (DeliverOrderResponse) {
         option (google.api.http) = {
             post: "/orders/deliver"
             body: "*"
@@ -58,7 +57,7 @@ service OrderService {
             description: "This endpoint retrieves returns with pagination."
         };
     }
-    rpc ReturnOrder (ReturnOrderRequest) returns (google.protobuf.Empty) {
+    rpc ReturnOrder (ReturnOrderRequest) returns (ReturnOrderResponse) {
         option (google.api.http) = {
             delete: "/orders/return"
         };
@@ -67,6 +66,20 @@ service OrderService {
             description: "This endpoint delete order."
         };
     }
+}
+
+message Order {
+    int32 id = 1;
+    int32 recipient = 2;
+    string expire = 3;
+    string status = 4;
+}
+
+message Return {
+    int32 id = 1;
+    int32 recipient = 2;
+    string expire = 3;
+    string returnedAt = 4;
 }
 
 message AcceptOrderRequest {
@@ -84,14 +97,20 @@ message AcceptOrderRequest {
     }];
 }
 
+message AcceptOrderResponse {}
+
 message AcceptReturnRequest {
     int32 user = 1 [(validate.rules).int32.gt = 0];
     int32 order = 2 [(validate.rules).int32.gt = 0];
 }
 
+message AcceptReturnResponse {}
+
 message DeliverOrderRequest {
     repeated int32 orders = 1 [(validate.rules).repeated.items.int32.gt = 0];
 }
+
+message DeliverOrderResponse {}
 
 message GetOrdersRequest {
     int32 user = 1 [(validate.rules).int32.gt = 0];
@@ -104,43 +123,21 @@ message GetOrdersResponse {
     repeated Order orders = 1;
 }
 
-message Order {
-    int32 id = 1 [(validate.rules).int32.gt = 0];
-    int32 recipient = 2 [(validate.rules).int32.gt = 0];
-    string expire = 3 [(validate.rules).string = {
-        min_len: 1,
-        max_len: 25
-    }];
-    string status = 4 [(validate.rules).string = {
-        min_len: 1,
-        max_len: 25
-    }];
-}
 
 message GetReturnsRequest {
     int32 offset = 1 [
-        (validate.rules).int32.gt = 0
+        (validate.rules).int32.gte = 0
     ];
-    int32 limit = 2 [(validate.rules).int32.gt = 0];
+    int32 limit = 2 [(validate.rules).int32.gte = 0];
 }
 
 message GetReturnsResponse {
     repeated Return returns = 1;
 }
 
-message Return {
-    int32 id = 1 [(validate.rules).int32.gt = 0];
-    int32 recipient = 2 [(validate.rules).int32.gt = 0];
-    string expire = 3 [(validate.rules).string = {
-        min_len: 1,
-        max_len: 100
-    }];
-    string returnedAt = 4 [(validate.rules).string = {
-        min_len: 1,
-        max_len: 100
-    }];
-}
 
 message ReturnOrderRequest {
     int32 order = 1 [(validate.rules).int32.gt = 0];
 }
+
+message ReturnOrderResponse {}

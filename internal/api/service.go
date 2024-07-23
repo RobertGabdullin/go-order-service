@@ -2,60 +2,71 @@ package api
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/commands"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/executor"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/logger"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	pb "gitlab.ozon.dev/r_gabdullin/homework-1/pb"
-	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type server struct {
+type Server struct {
 	pb.UnimplementedOrderServiceServer
-	storageService service.StorageService
-	logger         logger.Logger
-	mu             sync.Mutex
+	executor executor.CommandExecutorGrpc
+	logger   logger.Logger
 }
 
-func NewServer(st service.StorageService, log logger.Logger) *server {
-	return &server{
-		storageService: st,
-		logger:         log,
+func NewServer(executor executor.CommandExecutorGrpc, log logger.Logger) *Server {
+	return &Server{
+		executor: executor,
+		logger:   log,
 	}
 }
 
-func (s *server) AcceptOrder(ctx context.Context, req *pb.AcceptOrderRequest) (*emptypb.Empty, error) {
+func (s *Server) AcceptOrder(ctx context.Context, req *pb.AcceptOrderRequest) (*pb.AcceptOrderResponse, error) {
+	if err := req.Validate(); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid request: %v", err)
+	}
+
 	s.logEvent("AcceptOrder", req)
 
 	expire, err := time.Parse("2006-01-02T15", req.Expire)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.InvalidArgument, "invalid expire format: %v", err)
 	}
 
-	cmd := commands.SetAcceptOrd(s.storageService, int(req.User), int(req.Order), int(req.Weight), int(req.BasePrice), expire, req.Wrapper)
-	_, err = cmd.Execute(&s.mu)
+	cmd := commands.NewAcceptOrder(int(req.User), int(req.Order), int(req.Weight), int(req.BasePrice), expire, req.Wrapper)
+	_, err = s.executor.AcceptOrder(cmd)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to execute command: %v", err)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &pb.AcceptOrderResponse{}, nil
 }
 
-func (s *server) AcceptReturn(ctx context.Context, req *pb.AcceptReturnRequest) (*emptypb.Empty, error) {
+func (s *Server) AcceptReturn(ctx context.Context, req *pb.AcceptReturnRequest) (*pb.AcceptReturnResponse, error) {
+	if err := req.Validate(); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid request: %v", err)
+	}
+
 	s.logEvent("AcceptReturn", req)
 
-	cmd := commands.SetAcceptReturn(s.storageService, int(req.User), int(req.Order))
-	_, err := cmd.Execute(&s.mu)
+	cmd := commands.NewAcceptReturn(int(req.User), int(req.Order))
+	_, err := s.executor.AcceptReturn(cmd)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to execute command: %v", err)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &pb.AcceptReturnResponse{}, nil
 }
 
-func (s *server) DeliverOrder(ctx context.Context, req *pb.DeliverOrderRequest) (*emptypb.Empty, error) {
+func (s *Server) DeliverOrder(ctx context.Context, req *pb.DeliverOrderRequest) (*pb.DeliverOrderResponse, error) {
+	if err := req.Validate(); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid request: %v", err)
+	}
+
 	s.logEvent("DeliverOrder", req)
 
 	orders := make([]int, len(req.Orders))
@@ -63,23 +74,26 @@ func (s *server) DeliverOrder(ctx context.Context, req *pb.DeliverOrderRequest) 
 		orders[i] = int(order)
 	}
 
-	cmd := commands.SetDeliverOrd(s.storageService, orders)
-	_, err := cmd.Execute(&s.mu)
+	cmd := commands.NewDeliverOrder(orders)
+	_, err := s.executor.DeliverOrder(cmd)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to execute command: %v", err)
 	}
 
-	return &emptypb.Empty{}, nil
+	return &pb.DeliverOrderResponse{}, nil
 }
 
-func (s *server) GetOrders(ctx context.Context, req *pb.GetOrdersRequest) (*pb.GetOrdersResponse, error) {
+func (s *Server) GetOrders(ctx context.Context, req *pb.GetOrdersRequest) (*pb.GetOrdersResponse, error) {
+	if err := req.Validate(); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid request: %v", err)
+	}
+
 	s.logEvent("GetOrders", req)
 
-	cmd := commands.SetGetOrds(s.storageService, int(req.User), int(req.Count))
-
-	orders, err := cmd.Execute(&s.mu)
+	cmd := commands.NewGetOrders(int(req.User), int(req.Count))
+	orders, err := s.executor.GetOrders(cmd)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to get orders: %v", err)
 	}
 
 	orderList := []*pb.Order{}
@@ -95,12 +109,17 @@ func (s *server) GetOrders(ctx context.Context, req *pb.GetOrdersRequest) (*pb.G
 	return &pb.GetOrdersResponse{Orders: orderList}, nil
 }
 
-func (s *server) GetReturns(ctx context.Context, req *pb.GetReturnsRequest) (*pb.GetReturnsResponse, error) {
+func (s *Server) GetReturns(ctx context.Context, req *pb.GetReturnsRequest) (*pb.GetReturnsResponse, error) {
+	if err := req.Validate(); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid request: %v", err)
+	}
+
 	s.logEvent("GetReturns", req)
 
-	returns, err := s.storageService.GetReturns(int(req.Offset), int(req.Limit))
+	cmd := commands.NewGetReturns(int(req.Offset), int(req.Limit))
+	returns, err := s.executor.GetReturns(cmd)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to get returns: %v", err)
 	}
 
 	returnList := []*pb.Return{}
@@ -116,14 +135,18 @@ func (s *server) GetReturns(ctx context.Context, req *pb.GetReturnsRequest) (*pb
 	return &pb.GetReturnsResponse{Returns: returnList}, nil
 }
 
-func (s *server) ReturnOrder(ctx context.Context, req *pb.ReturnOrderRequest) (*emptypb.Empty, error) {
-	s.logEvent("ReturnOrder", req)
-
-	cmd := commands.SetReturnOrd(s.storageService, int(req.Order))
-	_, err := cmd.Execute(&s.mu)
-	if err != nil {
-		return nil, err
+func (s *Server) ReturnOrder(ctx context.Context, req *pb.ReturnOrderRequest) (*pb.ReturnOrderResponse, error) {
+	if err := req.Validate(); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid request: %v", err)
 	}
 
-	return &emptypb.Empty{}, nil
+	s.logEvent("ReturnOrder", req)
+
+	cmd := commands.NewReturnOrder(int(req.Order))
+	_, err := s.executor.ReturnOrder(cmd)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to execute command: %v", err)
+	}
+
+	return &pb.ReturnOrderResponse{}, nil
 }

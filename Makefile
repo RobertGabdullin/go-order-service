@@ -2,10 +2,10 @@ MIGRATION_DIR=./migrations
 DB_CONNECTION_STRING=postgres://postgres:postgres@localhost:5432/orders?sslmode=disable
 TEST_DB_CONNECTION_STRING=postgres://postgres:postgres@localhost:5433/orders_test?sslmode=disable
 
-PROTO_DIR=./proto
+PROTO_DIR=./api/order
 PROTO_OUT_DIR=./pb
-DEP_DIR=./dep
-PROTO_FILES=./proto/*.proto
+DEP_DIR=./vendor-proto
+PROTO_FILES=./api/order/*.proto
 
 GOOGLEAPIS_REPO=https://github.com/googleapis/googleapis.git
 GRPC_GATEWAY_REPO=https://github.com/grpc-ecosystem/grpc-gateway.git

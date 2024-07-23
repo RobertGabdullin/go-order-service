@@ -13,6 +13,7 @@ import (
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cli"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/config"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/event_broker"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/executor"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/logger"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
@@ -33,6 +34,7 @@ func main() {
 			fmt.Printf("Error initializing Kafka: %v\n", err)
 			return
 		}
+
 		defer kafkaClient.CloseProducer()
 		go event_broker.StartConsumer(cfg.Kafka.Brokers, cfg.Kafka.Topic)
 	}
@@ -54,6 +56,7 @@ func main() {
 	}
 
 	orderService := service.NewPostgresService(postgresStorage, wrapperStorage)
+	executor := executor.NewOrderCommandExecutor(orderService)
 
 	parser := parser.ArgsParser{}
 	logger := logger.KafkaLogger{
@@ -61,7 +64,7 @@ func main() {
 		KafkaTopic:  cfg.Kafka.Topic,
 		KafkaClient: kafkaClient,
 	}
-	cmd := cli.NewCLI(orderService, parser, logger)
+	cmd := cli.NewCLI(executor, parser, logger)
 
 	commandChan := make(chan string, 10)
 	var wg sync.WaitGroup

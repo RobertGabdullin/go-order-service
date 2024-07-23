@@ -24,6 +24,9 @@ type Config struct {
 	App struct {
 		OutputMode string `yaml:"output_mode"`
 	} `yaml:"app"`
+	Grpc struct {
+		Port string `yaml:"port"`
+	} `yaml:"grpc"`
 }
 
 func validate(cfg *Config) error {

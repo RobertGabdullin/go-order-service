@@ -8,7 +8,7 @@ import (
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/logger"
 )
 
-func (s *server) logEvent(methodName string, request interface{}) {
+func (s *Server) logEvent(methodName string, request interface{}) {
 	if s.logger == nil {
 		return
 	}

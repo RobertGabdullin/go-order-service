@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v5.27.2
-// source: service.proto
+// source: order.proto
 
 package orders
 
@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -23,12 +22,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OrderServiceClient interface {
-	AcceptOrder(ctx context.Context, in *AcceptOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	AcceptReturn(ctx context.Context, in *AcceptReturnRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	DeliverOrder(ctx context.Context, in *DeliverOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	AcceptOrder(ctx context.Context, in *AcceptOrderRequest, opts ...grpc.CallOption) (*AcceptOrderResponse, error)
+	AcceptReturn(ctx context.Context, in *AcceptReturnRequest, opts ...grpc.CallOption) (*AcceptReturnResponse, error)
+	DeliverOrder(ctx context.Context, in *DeliverOrderRequest, opts ...grpc.CallOption) (*DeliverOrderResponse, error)
 	GetOrders(ctx context.Context, in *GetOrdersRequest, opts ...grpc.CallOption) (*GetOrdersResponse, error)
 	GetReturns(ctx context.Context, in *GetReturnsRequest, opts ...grpc.CallOption) (*GetReturnsResponse, error)
-	ReturnOrder(ctx context.Context, in *ReturnOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ReturnOrder(ctx context.Context, in *ReturnOrderRequest, opts ...grpc.CallOption) (*ReturnOrderResponse, error)
 }
 
 type orderServiceClient struct {
@@ -39,8 +38,8 @@ func NewOrderServiceClient(cc grpc.ClientConnInterface) OrderServiceClient {
 	return &orderServiceClient{cc}
 }
 
-func (c *orderServiceClient) AcceptOrder(ctx context.Context, in *AcceptOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
+func (c *orderServiceClient) AcceptOrder(ctx context.Context, in *AcceptOrderRequest, opts ...grpc.CallOption) (*AcceptOrderResponse, error) {
+	out := new(AcceptOrderResponse)
 	err := c.cc.Invoke(ctx, "/orders.OrderService/AcceptOrder", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -48,8 +47,8 @@ func (c *orderServiceClient) AcceptOrder(ctx context.Context, in *AcceptOrderReq
 	return out, nil
 }
 
-func (c *orderServiceClient) AcceptReturn(ctx context.Context, in *AcceptReturnRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
+func (c *orderServiceClient) AcceptReturn(ctx context.Context, in *AcceptReturnRequest, opts ...grpc.CallOption) (*AcceptReturnResponse, error) {
+	out := new(AcceptReturnResponse)
 	err := c.cc.Invoke(ctx, "/orders.OrderService/AcceptReturn", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -57,8 +56,8 @@ func (c *orderServiceClient) AcceptReturn(ctx context.Context, in *AcceptReturnR
 	return out, nil
 }
 
-func (c *orderServiceClient) DeliverOrder(ctx context.Context, in *DeliverOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
+func (c *orderServiceClient) DeliverOrder(ctx context.Context, in *DeliverOrderRequest, opts ...grpc.CallOption) (*DeliverOrderResponse, error) {
+	out := new(DeliverOrderResponse)
 	err := c.cc.Invoke(ctx, "/orders.OrderService/DeliverOrder", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -84,8 +83,8 @@ func (c *orderServiceClient) GetReturns(ctx context.Context, in *GetReturnsReque
 	return out, nil
 }
 
-func (c *orderServiceClient) ReturnOrder(ctx context.Context, in *ReturnOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
+func (c *orderServiceClient) ReturnOrder(ctx context.Context, in *ReturnOrderRequest, opts ...grpc.CallOption) (*ReturnOrderResponse, error) {
+	out := new(ReturnOrderResponse)
 	err := c.cc.Invoke(ctx, "/orders.OrderService/ReturnOrder", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -97,12 +96,12 @@ func (c *orderServiceClient) ReturnOrder(ctx context.Context, in *ReturnOrderReq
 // All implementations must embed UnimplementedOrderServiceServer
 // for forward compatibility
 type OrderServiceServer interface {
-	AcceptOrder(context.Context, *AcceptOrderRequest) (*emptypb.Empty, error)
-	AcceptReturn(context.Context, *AcceptReturnRequest) (*emptypb.Empty, error)
-	DeliverOrder(context.Context, *DeliverOrderRequest) (*emptypb.Empty, error)
+	AcceptOrder(context.Context, *AcceptOrderRequest) (*AcceptOrderResponse, error)
+	AcceptReturn(context.Context, *AcceptReturnRequest) (*AcceptReturnResponse, error)
+	DeliverOrder(context.Context, *DeliverOrderRequest) (*DeliverOrderResponse, error)
 	GetOrders(context.Context, *GetOrdersRequest) (*GetOrdersResponse, error)
 	GetReturns(context.Context, *GetReturnsRequest) (*GetReturnsResponse, error)
-	ReturnOrder(context.Context, *ReturnOrderRequest) (*emptypb.Empty, error)
+	ReturnOrder(context.Context, *ReturnOrderRequest) (*ReturnOrderResponse, error)
 	mustEmbedUnimplementedOrderServiceServer()
 }
 
@@ -110,13 +109,13 @@ type OrderServiceServer interface {
 type UnimplementedOrderServiceServer struct {
 }
 
-func (UnimplementedOrderServiceServer) AcceptOrder(context.Context, *AcceptOrderRequest) (*emptypb.Empty, error) {
+func (UnimplementedOrderServiceServer) AcceptOrder(context.Context, *AcceptOrderRequest) (*AcceptOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AcceptOrder not implemented")
 }
-func (UnimplementedOrderServiceServer) AcceptReturn(context.Context, *AcceptReturnRequest) (*emptypb.Empty, error) {
+func (UnimplementedOrderServiceServer) AcceptReturn(context.Context, *AcceptReturnRequest) (*AcceptReturnResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AcceptReturn not implemented")
 }
-func (UnimplementedOrderServiceServer) DeliverOrder(context.Context, *DeliverOrderRequest) (*emptypb.Empty, error) {
+func (UnimplementedOrderServiceServer) DeliverOrder(context.Context, *DeliverOrderRequest) (*DeliverOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeliverOrder not implemented")
 }
 func (UnimplementedOrderServiceServer) GetOrders(context.Context, *GetOrdersRequest) (*GetOrdersResponse, error) {
@@ -125,7 +124,7 @@ func (UnimplementedOrderServiceServer) GetOrders(context.Context, *GetOrdersRequ
 func (UnimplementedOrderServiceServer) GetReturns(context.Context, *GetReturnsRequest) (*GetReturnsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetReturns not implemented")
 }
-func (UnimplementedOrderServiceServer) ReturnOrder(context.Context, *ReturnOrderRequest) (*emptypb.Empty, error) {
+func (UnimplementedOrderServiceServer) ReturnOrder(context.Context, *ReturnOrderRequest) (*ReturnOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReturnOrder not implemented")
 }
 func (UnimplementedOrderServiceServer) mustEmbedUnimplementedOrderServiceServer() {}
@@ -282,5 +281,5 @@ var OrderService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "service.proto",
+	Metadata: "order.proto",
 }

@@ -2,57 +2,30 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
-	"sync"
-
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
-	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 )
 
-type getReturns struct {
-	service service.StorageService
-	offset  int
-	limit   int
+type GetReturns struct {
+	Offset int
+	Limit  int
 }
 
-func NewGetReturns(service service.StorageService) getReturns {
-	return getReturns{service: service}
+func NewGetReturns(offset, limit int) GetReturns {
+	return GetReturns{offset, limit}
 }
 
-func SetGetReturns(service service.StorageService, offset, limit int) getReturns {
-	return getReturns{service, offset, limit}
-}
-
-func (getReturns) GetName() string {
+func (GetReturns) GetName() string {
 	return "getReturns"
 }
 
-func (cur getReturns) Execute(mu *sync.Mutex) ([]models.Order, error) {
-
-	mu.Lock()
-	ords, err := cur.service.GetReturns(cur.offset, cur.limit)
-	mu.Unlock()
-
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range ords {
-		fmt.Printf("%d) orderID = %d recipientID = %d storedUntil = %s acceptedAt = %s\n", i+1, ords[i].Id, ords[i].Recipient, ords[i].Expire, ords[i].ReturnedAt)
-	}
-
-	return ords, nil
-}
-
-func (getReturns) Description() string {
+func (GetReturns) Description() string {
 	return `Получить список возвратов. Можно указать отступ (offset) и максимальное количество строк вывода (limit). Строки отсортированы по дате возврата.
 	     Использование: getReturns -offset=15 -limit=30`
 }
 
-func (cmd getReturns) AssignArgs(m map[string]string) (Command, error) {
+func GetReturnsAssignArgs(m map[string]string) (GetReturns, error) {
 	if len(m) > 2 {
-		return nil, errors.New("invalid number of flags")
+		return GetReturns{}, errors.New("invalid number of flags")
 	}
 
 	offset, limit := 0, -1
@@ -76,7 +49,7 @@ func (cmd getReturns) AssignArgs(m map[string]string) (Command, error) {
 	}
 
 	if ok {
-		return SetGetReturns(cmd.service, offset, limit), nil
+		return NewGetReturns(offset, limit), nil
 	}
-	return nil, errors.New("invalid flag value")
+	return GetReturns{}, errors.New("invalid flag value")
 }

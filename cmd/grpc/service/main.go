@@ -11,6 +11,7 @@ import (
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/api"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/config"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/event_broker"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/executor"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/logger"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
@@ -43,8 +44,9 @@ func main() {
 	}
 
 	orderService := service.NewPostgresService(postgresStorage, wrapperStorage)
+	executor := executor.NewOrderCommandExecutor(orderService)
 
-	lis, err := net.Listen("tcp", ":50051")
+	lis, err := net.Listen("tcp", cfg.Grpc.Port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -67,7 +69,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterOrderServiceServer(grpcServer, api.NewServer(orderService, logger))
+	pb.RegisterOrderServiceServer(grpcServer, api.NewServer(executor, logger))
 
 	log.Printf("gRPC server listening on %s", lis.Addr().String())
 	go func() {
@@ -82,7 +84,7 @@ func main() {
 
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	err = pb.RegisterOrderServiceHandlerFromEndpoint(ctx, mux, "localhost:50051", opts)
+	err = pb.RegisterOrderServiceHandlerFromEndpoint(ctx, mux, "localhost"+cfg.Grpc.Port, opts)
 	if err != nil {
 		log.Fatalf("failed to register HTTP-gateway: %v", err)
 	}

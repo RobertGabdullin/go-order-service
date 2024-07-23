@@ -9,3 +9,6 @@ kafka:
 
 app:
   output_mode: "kafka" # "kafka" или "direct"
+
+grpc:
+  port: ":12345"

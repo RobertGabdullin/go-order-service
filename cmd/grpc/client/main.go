@@ -1,106 +1,117 @@
 package main
 
 import (
-	"context"
+	"bufio"
 	"fmt"
 	"log"
-	"time"
+	"os"
+	"os/signal"
+	"strings"
+	"sync"
+	"syscall"
 
-	"google.golang.org/grpc"
-
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cli_grpc"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/config"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/event_broker"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/logger"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
 	pb "gitlab.ozon.dev/r_gabdullin/homework-1/pb"
+	"google.golang.org/grpc"
+)
+
+const (
+	address = "localhost:50051"
 )
 
 func main() {
-	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure(), grpc.WithBlock())
+
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-
 	client := pb.NewOrderServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		fmt.Printf("Error loading config file: %v\n", err)
+		return
+	}
 
-	acceptOrder(ctx, client)
-	getOrders(ctx, client)
-	deliverOrder(ctx, client)
-	getReturns(ctx, client)
-	returnOrder(ctx, client)
-	acceptReturn(ctx, client)
+	var kafkaClient *event_broker.KafkaClient
+	if cfg.App.OutputMode == config.KafkaOutputMode {
+		kafkaClient, err = event_broker.NewKafkaClient(cfg.Kafka.Brokers, nil)
+		if err != nil {
+			fmt.Printf("Error initializing Kafka: %v\n", err)
+			return
+		}
+
+		defer kafkaClient.CloseProducer()
+		go event_broker.StartConsumer(cfg.Kafka.Brokers, cfg.Kafka.Topic)
+	}
+
+	parser := parser.ArgsParser{}
+	logger := logger.KafkaLogger{
+		OutputMode:  cfg.App.OutputMode,
+		KafkaTopic:  cfg.Kafka.Topic,
+		KafkaClient: kafkaClient,
+	}
+	cmd := cli_grpc.NewCLI(client, parser, logger)
+	commandChan := make(chan string, 10)
+	var wg sync.WaitGroup
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	numWorkers := 2
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			worker(commandChan, &cmd)
+		}()
+	}
+
+	go func() {
+		<-sigs
+		fmt.Println("\nReceived shutdown signal")
+		close(commandChan)
+	}()
+
+	reader := bufio.NewReader(os.Stdin)
+	go func() {
+		for {
+			fmt.Print("> ")
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Printf("Error reading input: %v\n", err)
+				continue
+			}
+			input = strings.TrimSpace(input)
+			if input == "exit" {
+				fmt.Println("End of program")
+				close(commandChan)
+				return
+			}
+			commandChan <- input
+		}
+	}()
+
+	wg.Wait()
 }
 
-func acceptOrder(ctx context.Context, client pb.OrderServiceClient) {
-	req := &pb.AcceptOrderRequest{
-		User:      1,
-		Order:     101,
-		Weight:    2,
-		BasePrice: 1000,
-		Expire:    "2024-12-20T12",
-		Wrapper:   "pack",
-	}
-	_, err := client.AcceptOrder(ctx, req)
-	if err != nil {
-		log.Fatalf("could not accept order: %v", err)
-	}
-	fmt.Println("Order accepted")
-}
+func worker(commandChan <-chan string, cmd *cli_grpc.CLI_gRPC) {
+	for input := range commandChan {
+		if input == "help" {
+			cmd.Help()
+			continue
+		}
 
-func acceptReturn(ctx context.Context, client pb.OrderServiceClient) {
-	req := &pb.AcceptReturnRequest{
-		User:  1,
-		Order: 101,
+		errRun := cmd.Run(input)
+		if errRun != nil {
+			fmt.Println(errRun)
+		} else {
+			fmt.Println("Success!")
+		}
 	}
-	_, err := client.AcceptReturn(ctx, req)
-	if err != nil {
-		log.Fatalf("could not accept return: %v", err)
-	}
-	fmt.Println("Return accepted")
-}
-
-func deliverOrder(ctx context.Context, client pb.OrderServiceClient) {
-	req := &pb.DeliverOrderRequest{
-		Orders: []int32{101},
-	}
-	_, err := client.DeliverOrder(ctx, req)
-	if err != nil {
-		log.Fatalf("could not deliver orders: %v", err)
-	}
-	fmt.Println("Orders delivered")
-}
-
-func getOrders(ctx context.Context, client pb.OrderServiceClient) {
-	req := &pb.GetOrdersRequest{
-		User:  1,
-		Count: 10,
-	}
-	resp, err := client.GetOrders(ctx, req)
-	if err != nil {
-		log.Fatalf("could not get orders: %v", err)
-	}
-	fmt.Println("Orders:", resp.GetOrders())
-}
-
-func getReturns(ctx context.Context, client pb.OrderServiceClient) {
-	req := &pb.GetReturnsRequest{
-		Offset: 0,
-		Limit:  10,
-	}
-	resp, err := client.GetReturns(ctx, req)
-	if err != nil {
-		log.Fatalf("could not get returns: %v", err)
-	}
-	fmt.Println("Returns:", resp.GetReturns())
-}
-
-func returnOrder(ctx context.Context, client pb.OrderServiceClient) {
-	req := &pb.ReturnOrderRequest{
-		Order: 101,
-	}
-	_, err := client.ReturnOrder(ctx, req)
-	if err != nil {
-		log.Fatalf("could not return order: %v", err)
-	}
-	fmt.Println("Order returned")
 }
