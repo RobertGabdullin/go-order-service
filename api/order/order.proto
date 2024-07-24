@@ -89,11 +89,11 @@ message AcceptOrderRequest {
     int32 basePrice = 4 [(validate.rules).int32.gt = 0];
     string expire = 5 [(validate.rules).string = {
         min_len: 1,
-        max_len: 25
+        max_len: 55
     }];
     string wrapper = 6 [(validate.rules).string = {
         min_len: 1,
-        max_len: 25
+        max_len: 55
     }];
 }
 

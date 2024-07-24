@@ -313,10 +313,10 @@ func (m *AcceptOrderRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if l := utf8.RuneCountInString(m.GetExpire()); l < 1 || l > 25 {
+	if l := utf8.RuneCountInString(m.GetExpire()); l < 1 || l > 55 {
 		err := AcceptOrderRequestValidationError{
 			field:  "Expire",
-			reason: "value length must be between 1 and 25 runes, inclusive",
+			reason: "value length must be between 1 and 55 runes, inclusive",
 		}
 		if !all {
 			return err
@@ -324,10 +324,10 @@ func (m *AcceptOrderRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if l := utf8.RuneCountInString(m.GetWrapper()); l < 1 || l > 25 {
+	if l := utf8.RuneCountInString(m.GetWrapper()); l < 1 || l > 55 {
 		err := AcceptOrderRequestValidationError{
 			field:  "Wrapper",
-			reason: "value length must be between 1 and 25 runes, inclusive",
+			reason: "value length must be between 1 and 55 runes, inclusive",
 		}
 		if !all {
 			return err

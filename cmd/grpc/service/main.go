@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	_ "github.com/lib/pq"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/api"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/config"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/event_broker"

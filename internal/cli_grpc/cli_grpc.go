@@ -42,11 +42,11 @@ func (c CLI_gRPC) Help() {
 }
 
 func (c CLI_gRPC) translate_command(cmd string, args map[string]string) ([]models.Order, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	switch cmd {
-	case "acceptOrder":
+	case "acceptOrd":
 		cmdArgs, err := commands.AcceptOrderAssignArgs(args)
 		if err != nil {
 			return nil, err
@@ -57,7 +57,7 @@ func (c CLI_gRPC) translate_command(cmd string, args map[string]string) ([]model
 			Order:     int32(cmdArgs.Recipient),
 			Weight:    int32(cmdArgs.Weight),
 			BasePrice: int32(cmdArgs.BasePrice),
-			Expire:    cmdArgs.Expire.String(),
+			Expire:    cmdArgs.Expire.Format("2006-01-02T15"),
 			Wrapper:   cmdArgs.Wrapper,
 		}
 
@@ -84,7 +84,7 @@ func (c CLI_gRPC) translate_command(cmd string, args map[string]string) ([]model
 		}
 		return []models.Order{}, nil
 
-	case "deliverOrder":
+	case "deliverOrd":
 		cmdArgs, err := commands.DeliverOrderAssignArgs(args)
 		if err != nil {
 			return nil, err
@@ -105,7 +105,7 @@ func (c CLI_gRPC) translate_command(cmd string, args map[string]string) ([]model
 		}
 		return []models.Order{}, nil
 
-	case "getOrders":
+	case "getOrds":
 		cmdArgs, err := commands.GetOrdersAssignArgs(args)
 		if err != nil {
 			return nil, err
@@ -163,7 +163,7 @@ func (c CLI_gRPC) translate_command(cmd string, args map[string]string) ([]model
 
 		return ords, nil
 
-	case "returnOrder":
+	case "returnOrd":
 		cmdArgs, err := commands.ReturnOrderAssignArgs(args)
 		if err != nil {
 			return nil, err
