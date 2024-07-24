@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cache"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/metrics"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/models"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 )
@@ -11,10 +13,17 @@ import (
 type OrderService struct {
 	orderStorage   storage.TransactionalOrderStorage
 	wrapperStorage storage.WrapperStorage
+	cache          cache.Cache
+	metrics        metrics.Metrics
 }
 
-func NewPostgresService(storage storage.TransactionalOrderStorage, wrapperStorage storage.WrapperStorage) *OrderService {
-	return &OrderService{orderStorage: storage, wrapperStorage: wrapperStorage}
+func NewPostgresService(storage storage.TransactionalOrderStorage, wrapperStorage storage.WrapperStorage, cache cache.Cache, metrics metrics.Metrics) *OrderService {
+	return &OrderService{
+		orderStorage:   storage,
+		wrapperStorage: wrapperStorage,
+		cache:          cache,
+		metrics:        metrics,
+	}
 }
 
 func (s *OrderService) AddOrder(ord models.Order) error {
@@ -53,33 +62,59 @@ func (s *OrderService) ChangeStatus(id int, status, hash string) error {
 		return err
 	}
 
+	if status == "delivered" {
+		s.metrics.IncIssuedOrders()
+	}
+
+	s.cache.InvalidateOrder(id)
+
 	return s.orderStorage.CommitTransaction(tx)
 }
 
 func (s *OrderService) FindOrders(ids []int) ([]models.Order, error) {
-
 	var orders []models.Order
 	for _, id := range ids {
-		order, err := s.orderStorage.GetOrderById(id)
+		order, err := s.getOrderFromCacheOrStorage(id)
 		if err != nil {
 			return nil, err
 		}
 		orders = append(orders, order)
 	}
-
 	return orders, nil
 }
 
 func (s *OrderService) ListOrders(recipient int) ([]models.Order, error) {
-	return s.orderStorage.GetOrdersByRecipient(recipient)
+	orders, err := s.orderStorage.GetOrdersByRecipient(recipient)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, order := range orders {
+		s.cache.SetOrder(order.Id, order)
+	}
+	return orders, nil
 }
 
 func (s *OrderService) GetReturns(offset, limit int) ([]models.Order, error) {
-	return s.orderStorage.GetPaginatedOrdersByStatus("returned", offset, limit)
+	orders, err := s.orderStorage.GetPaginatedOrdersByStatus("returned", offset, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, order := range orders {
+		s.cache.SetOrder(order.Id, order)
+	}
+	return orders, nil
 }
 
 func (s *OrderService) DeleteOrder(id int) error {
-	return s.orderStorage.DeleteOrder(id)
+	err := s.orderStorage.DeleteOrder(id)
+	if err != nil {
+		return err
+	}
+
+	s.cache.InvalidateOrder(id)
+	return nil
 }
 
 func (s *OrderService) GetWrapper(givenType string) (models.Wrapper, error) {
@@ -91,4 +126,18 @@ func (s *OrderService) GetWrapper(givenType string) (models.Wrapper, error) {
 		return models.Wrapper{}, errors.New("wrapper not found")
 	}
 	return wrappers[0], nil
+}
+
+func (s *OrderService) getOrderFromCacheOrStorage(id int) (models.Order, error) {
+	if order, found := s.cache.GetOrder(id); found {
+		return order, nil
+	}
+
+	order, err := s.orderStorage.GetOrderById(id)
+	if err != nil {
+		return models.Order{}, err
+	}
+
+	s.cache.SetOrder(id, order)
+	return order, nil
 }

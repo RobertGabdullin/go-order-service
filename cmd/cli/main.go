@@ -10,11 +10,13 @@ import (
 	"syscall"
 
 	_ "github.com/lib/pq"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cache"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cli"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/config"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/event_broker"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/executor"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/logger"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/metrics"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/parser"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
@@ -55,7 +57,7 @@ func main() {
 		return
 	}
 
-	orderService := service.NewPostgresService(postgresStorage, wrapperStorage)
+	orderService := service.NewPostgresService(postgresStorage, wrapperStorage, cache.NewInMemoryCache(), metrics.NewPrometheusMetrics())
 	executor := executor.NewOrderCommandExecutor(orderService)
 
 	parser := parser.ArgsParser{}

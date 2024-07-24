@@ -9,11 +9,14 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/api"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/cache"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/config"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/event_broker"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/executor"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/logger"
+	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/metrics"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/service"
 	"gitlab.ozon.dev/r_gabdullin/homework-1/internal/storage"
 	pb "gitlab.ozon.dev/r_gabdullin/homework-1/pb"
@@ -44,7 +47,7 @@ func main() {
 		return
 	}
 
-	orderService := service.NewPostgresService(postgresStorage, wrapperStorage)
+	orderService := service.NewPostgresService(postgresStorage, wrapperStorage, cache.NewInMemoryCache(), metrics.NewPrometheusMetrics())
 	executor := executor.NewOrderCommandExecutor(orderService)
 
 	lis, err := net.Listen("tcp", cfg.Grpc.Port)
@@ -90,8 +93,17 @@ func main() {
 		log.Fatalf("failed to register HTTP-gateway: %v", err)
 	}
 
+	http.Handle("/metrics", promhttp.Handler())
+
 	log.Printf("HTTP-gateway server listening on :8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	go func() {
+		if err := http.ListenAndServe(":8080", mux); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
+	log.Printf("Metrics endpoint listening on :9090")
+	if err := http.ListenAndServe(":9090", nil); err != nil {
+		log.Fatalf("failed to serve metrics endpoint: %v", err)
 	}
 }
